@@ -37,4 +37,4 @@ services:
     depends_on:
       - auth-service
       - evaluation-service
-
+    env_file: .env
