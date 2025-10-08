@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+.env
+
+# logs
+*.log
+
+# build output
+dist/
+build/
+
+# docker stuff
+*.pid
+*.sock
+postgres-data/
+
+# system files
+.DS_Store
+.idea/
+.vscode/
