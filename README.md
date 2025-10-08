@@ -13,7 +13,7 @@ A modular, containerized platform for faculty evaluation. Includes Postgres, two
 | Gateway             | API gateway (planned)                     |  -   | Planned |
 
 ## Project Structure
-
+```
 teacher-eval/
 ├── auth-service/
 │ ├── src/index.js
@@ -33,7 +33,7 @@ teacher-eval/
 ├── docker-compose.yml
 ├── .env
 └── .gitignore
-
+```
 ## How to Run (Docker)
 
 Prerequisite: Docker Desktop is running.
