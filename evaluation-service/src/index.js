@@ -1,8 +1,9 @@
 // src/index.js
 
 import express from "express";
-import pg from "pg";
 import dotenv from "dotenv";
+import { pool } from "./db.js";
+import teachersRouter from "./routes/teachers.js";
 
 // Load .env variables
 dotenv.config();
@@ -10,14 +11,8 @@ dotenv.config();
 const app = express();
 const port = 3002;
 
-// Create a Postgres connection pool
-const pool = new pg.Pool({
-  user: process.env.POSTGRES_USER,
-  host: process.env.POSTGRES_HOST,
-  database: process.env.POSTGRES_DB,
-  password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT,
-});
+app.use(express.json())
+app.use(teachersRouter);
 
 // Route to check DB connection
 app.get("/health/db", async (req, res) => {
