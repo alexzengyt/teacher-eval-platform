@@ -38,3 +38,13 @@ services:
       - auth-service
       - evaluation-service
     env_file: .env
+  
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "8080:8080" 
+    depends_on:
+      - auth-service
+      - evaluation-service
+    restart: unless-stopped
