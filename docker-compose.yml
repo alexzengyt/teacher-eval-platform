@@ -27,6 +27,8 @@ services:
     depends_on:
       - postgres
     env_file: ./evaluation-service/.env
+    environment:
+    - AUTH_JWT_SECRET=${AUTH_JWT_SECRET}
 
   frontend:
     build: ./frontend

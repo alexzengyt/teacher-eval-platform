@@ -2,6 +2,12 @@
   "name": "auth-service",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node src/index.js" },
-  "dependencies": { "express": "^4.19.2" }
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  }
 }
