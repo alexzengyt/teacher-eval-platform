@@ -1,5 +1,6 @@
 // frontend/src/components/TeachersTable.jsx
 import React, { useEffect, useState } from "react";
+import { apiFetch } from "../lib/api.js";
 
 /**
  * TeachersTable
@@ -42,31 +43,31 @@ export default function TeachersTable() {
 
   // ---------- Fetch function ----------
   async function fetchPage({ pageArg = page, pageSizeArg = pageSize, qArg = q } = {}) {
-    // Build query string safely
+    // 1 Build query string safely
     const params = new URLSearchParams();
     if (qArg) params.set("q", qArg);
     params.set("page", String(pageArg));
     params.set("page_size", String(pageSizeArg));
 
-    const url = `${API_BASE}/api/eval/teachers?${params.toString()}`;
-
     setLoading(true);
     setErr(null);
+
     try {
-      const r = await fetch(url);
-      const json = await r.json();
-      if (json.ok) {
-        setRows(json.data || []);
-        setTotal(json.total || 0);
-      } else {
-        setErr(json.error || "Unknown error");
-      }
+      // 2 Use apiFetch so JWT token will be automatically attached
+      const data = await apiFetch(`/api/eval/teachers?${params.toString()}`);
+
+      // 3 Update table data
+      setRows(data.data || []);
+      setTotal(data.total || 0);
     } catch (e) {
-      setErr(e.message || "Network error");
+      // 4 Handle API or network errors
+      setErr(e.message || "Network or auth error");
     } finally {
+      // 5 Always stop the loading state
       setLoading(false);
     }
   }
+
 
   // Helper: simple email validation
   function isEmail(x) {
