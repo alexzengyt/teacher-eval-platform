@@ -26,6 +26,12 @@ export default function TeachersTable() {
   // Where to call API (from gateway)
   const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
+  // --- Add form states ---
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addErr, setAddErr] = useState("");
+
   // ---------- Fetch function ----------
   async function fetchPage({ pageArg = page, pageSizeArg = pageSize, qArg = q } = {}) {
     // Build query string safely
@@ -51,6 +57,59 @@ export default function TeachersTable() {
       setErr(e.message || "Network error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Helper: simple email validation
+  function isEmail(x) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
+  }
+
+  /**
+   * Submit handler for Add Teacher form.
+   * - Validates inputs
+   * - POST /api/eval/teachers (through gateway)
+   * - On success: clear inputs, reset to page 1, and reload
+   */
+  async function handleAddTeacher(e) {
+    e.preventDefault();
+
+    const name = newName.trim();
+    const email = newEmail.trim();
+
+    if (!name || !email) {
+      setAddErr("Name and email are required.");
+      return;
+    }
+    if (!isEmail(email)) {
+      setAddErr("Please enter a valid email address.");
+      return;
+    }
+
+    try {
+      setAdding(true);
+      setAddErr("");
+
+      const r = await fetch(`${API_BASE}/api/eval/teachers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email }),
+      });
+      const json = await r.json();
+      if (!r.ok || !json?.ok) {
+        throw new Error(json?.error || "Request failed");
+      }
+
+      // clear inputs
+      setNewName("");
+      setNewEmail("");
+
+      setPage(1);
+      await fetchPage({ pageArg: 1, pageSizeArg: pageSize, qArg: q });
+    } catch (err) {
+      setAddErr(err.message || "Add failed");
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -113,6 +172,33 @@ export default function TeachersTable() {
             <option value={20}>20</option>
           </select>
         </div>
+      </form>
+
+      {/* Add Teacher form */}
+      <form
+        onSubmit={handleAddTeacher}
+        style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}
+      >
+        <input
+          placeholder="Name"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          style={{ padding: 8, minWidth: 200 }}
+          disabled={adding}
+        />
+        <input
+          placeholder="Email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          style={{ padding: 8, minWidth: 240 }}
+          disabled={adding}
+        />
+        <button type="submit" disabled={adding} style={{ padding: "8px 12px" }}>
+          {adding ? "Adding..." : "Add"}
+        </button>
+        {addErr ? (
+          <span style={{ color: "crimson", marginLeft: 8 }}>{addErr}</span>
+        ) : null}
       </form>
 
       {/* Summary + pagination */}

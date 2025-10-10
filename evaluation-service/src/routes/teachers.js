@@ -1,5 +1,7 @@
 import express from "express";
 import { pool } from "../db.js";
+import { randomUUID } from "crypto";
+
 
 const router = express.Router();
 
@@ -90,6 +92,131 @@ router.get("/teachers", async (req, res) => {
   } catch (err) {
     console.error("[/teachers] DB query failed:", err?.message, err?.stack);
     res.status(500).json({ ok: false, error: "DB query failed" });
+  }
+});
+
+// POST /teachers — create a new teacher record
+router.post("/teachers", async (req, res) => {
+  try {
+    // 1) read input; both shapes are supported
+    const {
+      name,
+      email,
+      first_name: firstNameIn,
+      last_name: lastNameIn,
+    } = req.body || {};
+
+    // Basic required field
+    if (!email) {
+      return res.status(400).json({ ok: false, error: "email is required" });
+    }
+
+    // 2) discover which columns exist in `teachers` (avoid referencing non-existent columns)
+    const cols = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'teachers'
+    `);
+    const colset = new Set(cols.rows.map((r) => r.column_name));
+
+    const hasName = colset.has("name");
+    const hasFirstName = colset.has("first_name");
+    const hasLastName = colset.has("last_name");
+
+    // 3) create new UUID on Node side
+    const id = randomUUID();
+
+    // 4A) Case A: table has a `name` column —> insert (id, name, email)
+    if (hasName) {
+      // Prefer explicit `name`; otherwise build from first_name + last_name
+      const displayName =
+        (name && String(name).trim()) ||
+        [firstNameIn, lastNameIn].filter(Boolean).join(" ").trim();
+
+      if (!displayName) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "name (or first_name/last_name) is required" });
+      }
+
+      const sql = `
+        INSERT INTO teachers (id, name, email)
+        VALUES ($1, $2, $3)
+        RETURNING id, name, email
+      `;
+      const r = await pool.query(sql, [id, displayName, email]);
+      return res.status(201).json({ ok: true, data: r.rows[0] });
+    }
+
+    // 4B) Case B: no `name`, but `first_name` / `last_name` exist —> insert those columns
+    if (hasFirstName || hasLastName) {
+      // Start from provided first/last; if only `name` is provided, split it
+      let first_name = (firstNameIn || "").trim();
+      let last_name = (lastNameIn || "").trim();
+
+      if (!first_name && name) {
+        // naive split: first token -> first_name; rest -> last_name
+        const parts = String(name).trim().split(/\s+/);
+        first_name = parts.shift() || "";
+        last_name = parts.join(" ");
+      }
+
+      if (!first_name) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "first_name is required (or provide name to split)" });
+      }
+
+      // Build the INSERT dynamically so we never reference columns that don't exist
+      const fields = ["id", "email"];
+      const values = [id, email];
+      const placeholders = ["$1", "$2"];
+      let p = 3;
+
+      if (hasFirstName) {
+        fields.push("first_name");
+        values.push(first_name);
+        placeholders.push(`$${p++}`);
+      }
+      if (hasLastName) {
+        fields.push("last_name");
+        values.push(last_name);
+        placeholders.push(`$${p++}`);
+      }
+
+      const sql = `
+        INSERT INTO teachers (${fields.join(", ")})
+        VALUES (${placeholders.join(", ")})
+        RETURNING
+          id,
+          ${
+            hasFirstName && hasLastName
+              ? `(first_name || ' ' || last_name) AS name`
+              : hasFirstName
+              ? `first_name AS name`
+              : hasLastName
+              ? `last_name AS name`
+              : `'' AS name`
+          },
+          email
+      `;
+      const r = await pool.query(sql, values);
+      return res.status(201).json({ ok: true, data: r.rows[0] });
+    }
+
+    // 4C) Neither `name` nor `first_name/last_name` exist — unsupported schema for this feature
+    return res
+      .status(500)
+      .json({ ok: false, error: "DB schema missing name/first_name/last_name columns" });
+  } catch (e) {
+    // Friendly duplicate-key message (e.g., email unique)
+    if (e.code === "23505") {
+      return res
+        .status(409)
+        .json({ ok: false, error: "Duplicate key (likely email already exists)" });
+    }
+    console.error("[POST /teachers] DB error:", e?.message);
+    return res.status(500).json({ ok: false, error: "DB insert failed" });
   }
 });
 
