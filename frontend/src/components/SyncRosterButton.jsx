@@ -1,14 +1,12 @@
 // frontend/src/components/SyncRosterButton.jsx
-import React, { useMemo, useState } from "react";
-import { apiFetch } from "../lib/api.js"; // path: components -> lib
+import React, { useMemo, useState, useEffect } from "react";
+import { apiFetch } from "../lib/api.js"; // 注意：从 components -> lib 的相对路径
 
-// Read JWT payload from localStorage without hard-coding the key
+// Read JWT payload from localStorage (简单解析，不绑死 key)
 function readJwtPayload() {
   for (const [, v] of Object.entries(localStorage)) {
     if (typeof v === "string" && v.split(".").length === 3) {
-      try {
-        return JSON.parse(atob(v.split(".")[1]));
-      } catch { /* ignore */ }
+      try { return JSON.parse(atob(v.split(".")[1])); } catch {}
     }
   }
   return null;
@@ -18,27 +16,37 @@ export default function SyncRosterButton() {
   const payload = useMemo(() => readJwtPayload(), []);
   const isAdmin = payload?.role === "admin";
   const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState("");
 
-  // Hide the button for non-admins (backend still enforces admin anyway)
+  // 非管理员不显示按钮（后端也有校验）
   if (!isAdmin) return null;
 
-  // Click handler: call gateway -> data-integration-service
+  async function refreshStatus() {
+    try {
+      const s = await apiFetch("/api/integration/sync/status");
+      if (!s || s.status === "none") {
+        setStatusText("Last: none");
+        return;
+      }
+      const sum = s.summary_json || {};
+      setStatusText(
+        `Last: ${s.status} • t:${sum.teachersUpserts ?? 0} c:${sum.classesUpserts ?? 0} e:${sum.enrollmentsUpserts ?? 0}`
+      );
+    } catch {
+      setStatusText("Last: unknown");
+    }
+  }
+
+  useEffect(() => { refreshStatus(); }, []);
+
   async function onClick() {
     setLoading(true);
     try {
-      // POST /api/integration/sync (goes through gateway)
       const res = await apiFetch("/api/integration/sync", { method: "POST" });
-
-      // Show a simple result message
       const c = res?.counters || {};
-      alert(
-        `Sync ok.\n` +
-        `teachers: ${c.teachersUpserts ?? 0}, ` +
-        `classes: ${c.classesUpserts ?? 0}, ` +
-        `enrollments: ${c.enrollmentsUpserts ?? 0}`
-      );
+      alert(`Sync ok.\nteachers: ${c.teachersUpserts ?? 0}, classes: ${c.classesUpserts ?? 0}, enrollments: ${c.enrollmentsUpserts ?? 0}`);
+      await refreshStatus();
     } catch (err) {
-      // Basic error display
       alert(`Sync failed: ${err?.message || String(err)}`);
     } finally {
       setLoading(false);
@@ -46,13 +54,16 @@ export default function SyncRosterButton() {
   }
 
   return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      style={{ padding: "6px 10px", marginLeft: 8 }}
-      title="Pull roster from Schoolday (mock) and upsert into DB"
-    >
-      {loading ? "Syncing..." : "Sync Roster"}
-    </button>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <button
+        onClick={onClick}
+        disabled={loading}
+        style={{ padding: "6px 10px" }}
+        title="Pull roster from Schoolday (mock) and upsert into DB"
+      >
+        {loading ? "Syncing..." : "Sync Roster"}
+      </button>
+      <small style={{ opacity: 0.7 }}>{statusText}</small>
+    </span>
   );
 }
