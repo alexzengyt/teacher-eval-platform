@@ -49,6 +49,35 @@ services:
       - auth-service
       - evaluation-service
     restart: unless-stopped
+  
+  mock-schoolday-service:
+    build:
+      context: ./mock-schoolday-service
+    container_name: mock-schoolday-service
+    environment:
+      - PORT=7001    
+      - SD_EXPECTED_CLIENT_ID=dev-client
+      - SD_EXPECTED_CLIENT_SECRET=dev-secret
+    ports:
+      - "7001:7001"  
+    restart: unless-stopped
+
+  data-integration-service:
+    build:
+      context: ./data-integration-service
+    container_name: data-integration-service
+    environment:
+      - PORT=7002
+      - DATABASE_URL=postgres://te_user:te_pass_Dev123!@postgres:5432/teacher_eval
+      - SD_BASE_URL=http://mock-schoolday-service:7001
+      - SD_CLIENT_ID=dev-client
+      - SD_CLIENT_SECRET=dev-secret
+    depends_on:
+      - postgres
+      - mock-schoolday-service
+    ports:
+      - "7002:7002"
+    restart: unless-stopped
 
 
 volumes:
