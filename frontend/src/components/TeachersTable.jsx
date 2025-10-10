@@ -1,6 +1,7 @@
 // frontend/src/components/TeachersTable.jsx
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api.js";
+import SyncRosterButton from "./SyncRosterButton";
 
 /**
  * TeachersTable
@@ -226,6 +227,11 @@ export default function TeachersTable() {
 
   return (
     <div style={{ padding: 12 }}>
+      {/* Header + Sync button */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <h2 style={{ margin: 0 }}>Teachers</h2>
+        <SyncRosterButton />  {/* admin-only UI */}
+      </div>
       {/* Search + page size controls */}
       <form onSubmit={onSearchSubmit} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <input

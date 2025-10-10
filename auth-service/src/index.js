@@ -20,7 +20,8 @@ const USERS = [
 
 // Helper: sign a short-lived JWT (2h)
 function signToken(user) {
-  const payload = { sub: user.id, email: user.email, name: user.name };
+  const role = user.role || (user.email.toLowerCase() === 'admin@school.com' ? 'admin' : 'user');
+  const payload = { sub: user.id, email: user.email, name: user.name,role };
   return jwt.sign(payload, JWT_SECRET, { algorithm: 'HS256', expiresIn: '2h' });
 }
 

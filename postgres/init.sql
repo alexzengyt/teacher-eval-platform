@@ -209,3 +209,42 @@ BEGIN
   END IF;
 END
 $seed$ LANGUAGE plpgsql;
+
+-- ===== OneRoster master data (separate namespace to avoid collision) =====
+CREATE TABLE IF NOT EXISTS roster_teachers (
+  id SERIAL PRIMARY KEY,
+  external_id TEXT UNIQUE,
+  username TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  org_external_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS roster_classes (
+  id SERIAL PRIMARY KEY,
+  external_id TEXT UNIQUE,
+  title TEXT,
+  school_external_id TEXT,
+  term TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS roster_teacher_class_enrollments (
+  id SERIAL PRIMARY KEY,
+  teacher_external_id TEXT NOT NULL,
+  class_external_id TEXT NOT NULL,
+  role TEXT,
+  UNIQUE (teacher_external_id, class_external_id)
+);
+
+-- Sync run logs for debugging
+CREATE TABLE IF NOT EXISTS sync_runs (
+  id SERIAL PRIMARY KEY,
+  started_at TIMESTAMPTZ DEFAULT now(),
+  finished_at TIMESTAMPTZ,
+  status TEXT,
+  summary_json JSONB
+);
