@@ -220,4 +220,101 @@ router.post("/teachers", async (req, res) => {
   }
 });
 
+// DELETE /teachers/:id  —— delete one teacher by id
+router.delete("/teachers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const r = await pool.query(
+      "DELETE FROM teachers WHERE id=$1 RETURNING id",
+      [id]
+    );
+    if (r.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "not found" });
+    }
+    return res.json({ ok: true, id });
+  } catch (e) {
+    console.error("[DELETE /teachers/:id]", e?.message);
+    return res.status(500).json({ ok: false, error: "DB delete failed" });
+  }
+});
+
+// PATCH /teachers/:id  — update partial fields (name / email) safely
+router.patch("/teachers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email } = req.body || {};
+
+    // 1) discover table columns (avoid referencing non-existent columns)
+    const cols = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'teachers'
+    `);
+    const colset = new Set(cols.rows.map(r => r.column_name));
+
+    const hasName      = colset.has("name");
+    const hasFirstName = colset.has("first_name");
+    const hasLastName  = colset.has("last_name");
+    const hasEmail     = colset.has("email");
+
+    // 2) build SET clause dynamically
+    const setParts = [];
+    const params = [];
+    let idx = 1;
+
+    // only set name if the column really exists
+    if (name && hasName) {
+      setParts.push(`name = $${idx++}`);
+      params.push(name.trim());
+    }
+
+    if (email) {
+      if (!hasEmail) {
+        return res.status(500).json({ ok: false, error: "DB schema missing column: email" });
+      }
+      setParts.push(`email = $${idx++}`);
+      params.push(email.trim());
+    }
+
+    if (setParts.length === 0) {
+      return res.status(400).json({ ok: false, error: "No fields to update" });
+    }
+
+    // always bump updated_at when present
+    if (colset.has("updated_at")) {
+      setParts.push(`updated_at = now()`);
+    }
+
+    // 3) name expression for RETURNING (works with/without name column)
+    const nameExpr = hasName
+      ? "name"
+      : hasFirstName && hasLastName
+        ? "concat_ws(' ', first_name, last_name)"
+        : hasFirstName
+          ? "first_name"
+          : hasLastName
+            ? "last_name"
+            : "''";
+
+    params.push(id); // WHERE id = $idx
+
+    const sql = `
+      UPDATE teachers
+      SET ${setParts.join(", ")}
+      WHERE id = $${idx}
+      RETURNING id, ${nameExpr} AS name, ${hasEmail ? "email" : "NULL::text AS email"};
+    `;
+
+    const r = await pool.query(sql, params);
+    if (r.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "teacher not found" });
+    }
+    return res.json({ ok: true, data: r.rows[0] });
+  } catch (e) {
+    console.error("[PATCH /teachers/:id] DB error:", e?.message);
+    return res.status(500).json({ ok: false, error: "DB update failed" });
+  }
+});
+
+
 export default router;

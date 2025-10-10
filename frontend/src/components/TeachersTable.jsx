@@ -32,6 +32,14 @@ export default function TeachersTable() {
   const [adding, setAdding] = useState(false);
   const [addErr, setAddErr] = useState("");
 
+  // --- Edit & Delete states ---
+  const [editingId, setEditingId]   = useState(null);
+  const [editName, setEditName]     = useState("");
+  const [editEmail, setEditEmail]   = useState("");
+  const [saving, setSaving]         = useState(false);   // for PATCH
+  const [deletingId, setDeletingId] = useState(null);    // for DELETE feedback
+  const [actionErr, setActionErr]   = useState("");
+
   // ---------- Fetch function ----------
   async function fetchPage({ pageArg = page, pageSizeArg = pageSize, qArg = q } = {}) {
     // Build query string safely
@@ -145,6 +153,76 @@ export default function TeachersTable() {
   if (loading) return <div style={{ padding: 12 }}>Loading teachers…</div>;
   if (err) return <div style={{ padding: 12, color: "crimson" }}>Error: {err}</div>;
 
+  function beginEdit(row) {
+  setEditingId(row.id);
+  setEditName(row.name ?? "");
+  setEditEmail(row.email ?? "");
+  setActionErr("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName("");
+    setEditEmail("");
+    setActionErr("");
+  }
+
+  async function saveEdit() {
+    if (!editName.trim() && !editEmail.trim()) {
+      setActionErr("Nothing to update.");
+      return;
+    }
+    if (editEmail && !isEmail(editEmail)) {
+      setActionErr("Email format is invalid.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setActionErr("");
+      const url = `${API_BASE}/api/eval/teachers/${editingId}`;
+      const r = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(editName  ? { name:  editName.trim()  } : {}),
+          ...(editEmail ? { email: editEmail.trim() } : {}),
+        }),
+      });
+      const json = await r.json();
+      if (!json.ok) {
+        setActionErr(json.error || "Update failed");
+        return;
+      }
+      await fetchPage(1, pageSize, q); 
+      cancelEdit();
+    } catch (e) {
+      setActionErr(e.message || "Network error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm("Delete this teacher?")) return;
+    try {
+      setDeletingId(id);
+      setActionErr("");
+      const url = `${API_BASE}/api/eval/teachers/${id}`;
+      const r = await fetch(url, { method: "DELETE" });
+      const json = await r.json();
+      if (!json.ok) {
+        setActionErr(json.error || "Delete failed");
+        return;
+      }
+      await fetchPage(page, pageSize, q);
+    } catch (e) {
+      setActionErr(e.message || "Network error");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div style={{ padding: 12 }}>
       {/* Search + page size controls */}
@@ -220,22 +298,90 @@ export default function TeachersTable() {
             <th style={th}>ID</th>
             <th style={th}>Name</th>
             <th style={th}>Email</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={3} style={{ padding: 10, textAlign: "center", color: "#888" }}>
+              <td colSpan={4} style={{ padding: 10, textAlign: "center" }}>
                 No teachers found.
               </td>
             </tr>
-          ) : rows.map((t) => (
-            <tr key={t.id}>
-              <td style={tdMono}>{t.id}</td>
-              <td style={td}>{t.name}</td>
-              <td style={td}>{t.email}</td>
-            </tr>
-          ))}
+          ) : (
+            rows.map((t) => (
+              <tr key={t.id}>
+                {/* ID */}
+                <td style={tdMono}>{t.id}</td>
+
+                {/* Name */}
+                <td style={td}>
+                  {editingId === t.id ? (
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      style={{ padding: 6, minWidth: 220 }}
+                      disabled={saving}
+                    />
+                  ) : (
+                    t.name
+                  )}
+                </td>
+
+                {/* Email */}
+                <td style={td}>
+                  {editingId === t.id ? (
+                    <input
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      style={{ padding: 6, minWidth: 260 }}
+                      disabled={saving}
+                    />
+                  ) : (
+                    t.email
+                  )}
+                </td>
+
+                {/* Actions */}
+                <td style={td}>
+                  {editingId === t.id ? (
+                    <>
+                      <button
+                        onClick={saveEdit}
+                        disabled={saving}
+                        style={{ padding: "6px 10px", marginRight: 6 }}
+                      >
+                        {saving ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        disabled={saving}
+                        style={{ padding: "6px 10px" }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => beginEdit(t)}
+                        style={{ padding: "6px 10px", marginRight: 6 }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        disabled={deletingId === t.id}
+                        style={{ padding: "6px 10px" }}
+                      >
+                        {deletingId === t.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
