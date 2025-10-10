@@ -18,3 +18,10 @@ postgres-data/
 .DS_Store
 .idea/
 .vscode/
+
+# ── env files: never commit secrets ──────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.*.example
+.env.db
