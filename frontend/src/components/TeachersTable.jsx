@@ -25,6 +25,9 @@ export default function TeachersTable() {
   const [pendingQ, setPendingQ] = useState("");
   const [q, setQ] = useState("");
 
+  // NEW: filter to show only roster-originated teachers
+  const [fromRosterOnly, setFromRosterOnly] = useState(false);
+
   // Where to call API (from gateway)
   const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
@@ -43,12 +46,17 @@ export default function TeachersTable() {
   const [actionErr, setActionErr]   = useState("");
 
   // ---------- Fetch function ----------
-  async function fetchPage({ pageArg = page, pageSizeArg = pageSize, qArg = q } = {}) {
-    // 1 Build query string safely
+  async function fetchPage({
+    pageArg = page,
+    pageSizeArg = pageSize,
+    qArg = q,
+    fromRosterArg = fromRosterOnly,  // NEW: allow explicit value
+  } = {}) {    // 1 Build query string safely
     const params = new URLSearchParams();
     if (qArg) params.set("q", qArg);
     params.set("page", String(pageArg));
-    params.set("page_size", String(pageSizeArg));
+    params.set("pageSize", String(pageSizeArg));
+    if (fromRosterArg) params.set("fromRoster", "true");
 
     setLoading(true);
     setErr(null);
@@ -57,9 +65,11 @@ export default function TeachersTable() {
       // 2 Use apiFetch so JWT token will be automatically attached
       const data = await apiFetch(`/api/eval/teachers?${params.toString()}`);
 
-      // 3 Update table data
-      setRows(data.data || []);
-      setTotal(data.total || 0);
+      // 3 Update table data (prefer `items`, fallback to legacy `data`)
+      const rows = Array.isArray(data.items) ? data.items : (data.data || []);
+      setRows(rows);
+      // Prefer server-provided total; fallback to rows length
+      setTotal(Number(data.total) || rows.length || 0);
     } catch (e) {
       // 4 Handle API or network errors
       setErr(e.message || "Network or auth error");
@@ -100,13 +110,13 @@ export default function TeachersTable() {
       setAdding(true);
       setAddErr("");
 
-      const r = await fetch(`${API_BASE}/api/eval/teachers`, {
+      // Use apiFetch so JWT is attached automatically
+      const json = await apiFetch(`/api/eval/teachers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email }),
       });
-      const json = await r.json();
-      if (!r.ok || !json?.ok) {
+      if (!json?.ok) {
         throw new Error(json?.error || "Request failed");
       }
 
@@ -115,7 +125,7 @@ export default function TeachersTable() {
       setNewEmail("");
 
       setPage(1);
-      await fetchPage({ pageArg: 1, pageSizeArg: pageSize, qArg: q });
+      await fetchPage({ pageArg: 1, pageSizeArg: pageSize, qArg: q, fromRosterArg: fromRosterOnly });
     } catch (err) {
       setAddErr(err.message || "Add failed");
     } finally {
@@ -125,9 +135,9 @@ export default function TeachersTable() {
 
   // ---------- Initial load + reload when page/pageSize/q changes ----------
   useEffect(() => {
-    fetchPage({ pageArg: page, pageSizeArg: pageSize, qArg: q });
+    fetchPage({ pageArg: page, pageSizeArg: pageSize, qArg: q, fromRosterArg: fromRosterOnly });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, q]);
+  }, [page, pageSize, q, fromRosterOnly]);
 
   // ---------- Handlers ----------
   function onSearchSubmit(e) {
@@ -148,8 +158,8 @@ export default function TeachersTable() {
 
   // Derived values
   const maxPage = Math.max(1, Math.ceil(total / pageSize));
-  const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const showingTo = Math.min(total, page * pageSize);
+  const showingFrom = rows.length > 0 ? (page - 1) * pageSize + 1 : 0;
+  const showingTo   = rows.length > 0 ? (page - 1) * pageSize + rows.length : 0;
 
   // ---------- Render ----------
   if (loading) return <div style={{ padding: 12 }}>Loading teachers…</div>;
@@ -157,7 +167,10 @@ export default function TeachersTable() {
 
   function beginEdit(row) {
   setEditingId(row.id);
-  setEditName(row.name ?? "");
+  const displayName =
+    (row.name && row.name.trim()) ||
+    `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim();
+  setEditName(displayName);
   setEditEmail(row.email ?? "");
   setActionErr("");
   }
@@ -182,8 +195,7 @@ export default function TeachersTable() {
     try {
       setSaving(true);
       setActionErr("");
-      const url = `${API_BASE}/api/eval/teachers/${editingId}`;
-      const r = await fetch(url, {
+      const json = await apiFetch(`/api/eval/teachers/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -191,12 +203,12 @@ export default function TeachersTable() {
           ...(editEmail ? { email: editEmail.trim() } : {}),
         }),
       });
-      const json = await r.json();
+
       if (!json.ok) {
         setActionErr(json.error || "Update failed");
         return;
       }
-      await fetchPage(1, pageSize, q); 
+      await fetchPage({ pageArg: page, pageSizeArg: pageSize, qArg: q, fromRosterArg: fromRosterOnly });
       cancelEdit();
     } catch (e) {
       setActionErr(e.message || "Network error");
@@ -210,14 +222,13 @@ export default function TeachersTable() {
     try {
       setDeletingId(id);
       setActionErr("");
-      const url = `${API_BASE}/api/eval/teachers/${id}`;
-      const r = await fetch(url, { method: "DELETE" });
-      const json = await r.json();
+      const json = await apiFetch(`/api/eval/teachers/${id}`, { method: "DELETE" });
       if (!json.ok) {
         setActionErr(json.error || "Delete failed");
         return;
       }
-      await fetchPage(page, pageSize, q);
+      await fetchPage({ pageArg: page, pageSizeArg: pageSize, qArg: q, fromRosterArg: fromRosterOnly });
+
     } catch (e) {
       setActionErr(e.message || "Network error");
     } finally {
@@ -244,12 +255,33 @@ export default function TeachersTable() {
 
         <button type="button" onClick={() => { setPendingQ(""); setQ(""); setPage(1); }} style={{ padding: "6px 12px" }}>Clear</button>
 
+        {/* NEW: Roster only toggle */}
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 12 }}>
+          <input
+            type="checkbox"
+            checked={fromRosterOnly}
+            onChange={(e) => {
+              const next = e.target.checked;       // the intended value
+              setFromRosterOnly(next);
+              setPage(1);
+              // re-fetch with explicit flag to avoid stale state
+              fetchPage({ pageArg: 1, pageSizeArg: pageSize, qArg: q, fromRosterArg: next });
+            }}
+          />
+          <span>Roster only</span>
+        </label>
+
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
           <label htmlFor="pageSize">Per page:</label>
           <select
             id="pageSize"
             value={pageSize}
-            onChange={(e) => { setPage(1); setPageSize(parseInt(e.target.value, 10)); }}
+            onChange={(e) => {
+              const newSize = parseInt(e.target.value, 10);
+              setPage(1);
+              setPageSize(newSize);
+              fetchPage({ pageArg: 1, pageSizeArg: newSize, qArg: q, fromRosterArg: fromRosterOnly });
+            }}
             style={{ padding: "4px 6px" }}
           >
             <option value={5}>5</option>
@@ -331,7 +363,7 @@ export default function TeachersTable() {
                       disabled={saving}
                     />
                   ) : (
-                    t.name
+                    ((t.name && t.name.trim()) || `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim())
                   )}
                 </td>
 

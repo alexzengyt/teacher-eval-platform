@@ -12,86 +12,86 @@ const router = express.Router();
  */
 const NAME_EXPR = "COALESCE(name, concat_ws(' ', first_name, last_name))";
 
+// GET /teachers — list with fromRoster flag and optional filter
 router.get("/teachers", async (req, res) => {
-  // ---- 0) Read & sanitize query params ----
-  const q = (req.query.q || "").trim();
-  const page = Math.max(1, parseInt(req.query.page || "1", 10));
-  const pageSize = Math.min(50, Math.max(1, parseInt(req.query.page_size || "10", 10)));
-  const offset = (page - 1) * pageSize;
+  // Read query params safely
+  const { page = 1, pageSize = 10, q, fromRoster } = req.query;
+
+  // Normalize pagination (defensive defaults)
+  const limit = Math.max(parseInt(pageSize, 10) || 10, 1);
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const offset = (pageNum - 1) * limit;
+
+  // Build WHERE parts incrementally
+  const where = [];
+  const values = [];
+  let vi = 1;
+
+  // Optional text search across name/email (case-insensitive)
+  if (q && q.trim()) {
+    where.push(
+      `(lower(t.first_name) LIKE $${vi} OR lower(t.last_name) LIKE $${vi} OR lower(t.email) LIKE $${vi})`
+    );
+    values.push(`%${q.toLowerCase()}%`);
+    vi++;
+  }
+
+  // Optional filter: fromRoster=true/1 -> only rows where roster_source_id is NOT NULL
+  const wantRosterOnly =
+    typeof fromRoster !== "undefined" &&
+    (fromRoster === "true" || fromRoster === "1");
+  if (wantRosterOnly) {
+    where.push(`t.roster_source_id IS NOT NULL`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   try {
-    // ---- 1) Detect available columns from information_schema ----
-    const cols = await pool.query(
-      `
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'teachers'
-      `
-    );
-    const colset = new Set(cols.rows.map(r => r.column_name));
-
-    const hasName       = colset.has("name");
-    const hasFirstName  = colset.has("first_name");
-    const hasLastName   = colset.has("last_name");
-    const hasEmail      = colset.has("email");
-
-    if (!hasEmail) {
-      // We rely on email in responses and in search; fail fast if it's absent.
-      return res.status(500).json({ ok: false, error: "DB schema missing column: email" });
-    }
-
-    // ---- 2) Build a safe display-name expression based on schema ----
-    // IMPORTANT: we must never reference a non-existing column.
-    let NAME_EXPR = null;
-    if (hasName) {
-      NAME_EXPR = "name";
-    } else if (hasFirstName && hasLastName) {
-      NAME_EXPR = "concat_ws(' ', first_name, last_name)";
-    } else if (hasFirstName) {
-      NAME_EXPR = "first_name";
-    } else if (hasLastName) {
-      NAME_EXPR = "last_name";
-    } else {
-      // No name-related columns at all
-      NAME_EXPR = "''"; // empty string as a fallback display name
-    }
-
-    // ---- 3) WHERE clause + params (avoid injecting non-existing columns) ----
-    const hasQ = q !== "";
-    const whereSql = hasQ ? `(${NAME_EXPR} ILIKE $1 OR email ILIKE $1)` : "TRUE";
-    const likeParam = `%${q}%`;
-
-    // ---- 4) Count total ----
-    const countSql = `SELECT COUNT(*)::int AS count FROM teachers WHERE ${whereSql};`;
-    const countParams = hasQ ? [likeParam] : [];
-    const countResult = await pool.query(countSql, countParams);
-    const total = countResult.rows[0]?.count ?? 0;
-
-    // ---- 5) Fetch current page (ORDER BY the same safe expression) ----
-    // LIMIT/OFFSET are clamped integers from our code, safe to inline.
-    const listSql = `
+    // 1) Page data. Compute boolean field from_roster in SQL.
+    const dataSql = `
       SELECT
-        id,
-        ${NAME_EXPR} AS name,
-        email
-      FROM teachers
-      WHERE ${whereSql}
-      ORDER BY ${NAME_EXPR} ASC
-      LIMIT ${pageSize} OFFSET ${offset};
+        t.id,
+        t.first_name,
+        t.last_name,
+        t.email,
+        t.school_id,
+        t.source,
+        t.created_at,
+        t.updated_at,
+        (t.roster_source_id IS NOT NULL) AS from_roster  -- computed boolean
+      FROM public.teachers t
+      ${whereSql}
+      ORDER BY t.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
-    const listParams = hasQ ? [likeParam] : [];
-    const listResult = await pool.query(listSql, listParams);
+    const { rows } = await pool.query(dataSql, values);
 
-    // ---- 6) Respond ----
-    res.json({
-      ok: true,
-      query: { q, page, page_size: pageSize },
-      total,
-      data: listResult.rows,
-    });
+    // 2) Total count for pagination
+    const countSql = `
+      SELECT COUNT(*)::int AS total
+      FROM public.teachers t
+      ${whereSql}
+    `;
+    const { rows: countRows } = await pool.query(countSql, values);
+    const total = countRows[0]?.total || 0;
+
+    // 3) Map DB fields → API shape (camelCase) and expose fromRoster
+    const items = rows.map((r) => ({
+      id: r.id,
+      firstName: r.first_name,
+      lastName: r.last_name,
+      email: r.email,
+      schoolId: r.school_id,
+      source: r.source,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      fromRoster: !!r.from_roster, // NEW
+    }));
+
+    res.json({ page: pageNum, pageSize: limit, total, items });
   } catch (err) {
-    console.error("[/teachers] DB query failed:", err?.message, err?.stack);
-    res.status(500).json({ ok: false, error: "DB query failed" });
+    console.error("[teachers:list] error:", err);
+    res.status(500).json({ error: "failed to list teachers" });
   }
 });
 

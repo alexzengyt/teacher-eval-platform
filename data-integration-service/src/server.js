@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import pg from "pg";
 const { Pool } = pg;
 import jwt from "jsonwebtoken";
+import { linkRosterToTeachers } from "./sync/linkRosterToTeachers.js";
 
 const app = express();
 app.use(cors());
@@ -155,12 +156,16 @@ app.post("/internal/sync/run", async (req, res) => {
     for (const t of teachers) await upsertTeacher(t, client);
     for (const c of classes) await upsertClass(c, client);
     for (const e of enrollments) await upsertEnrollment(e, client);
+    
+    // 2.5) Link evaluation.teachers to roster_teachers by email (inside the same tx)
+    const linkStats = await linkRosterToTeachers(client);
 
     // 3) write a sync_runs row
     const summary = {
       teachersUpserts: teachers.length,
       classesUpserts: classes.length,
       enrollmentsUpserts: enrollments.length,
+      linkTeachers: linkStats,
       startedAt,
       finishedAt: new Date().toISOString(),
     };
