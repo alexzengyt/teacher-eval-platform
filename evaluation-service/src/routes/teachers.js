@@ -14,8 +14,17 @@ const NAME_EXPR = "COALESCE(name, concat_ws(' ', first_name, last_name))";
 
 // GET /teachers — list with fromRoster flag and optional filter
 router.get("/teachers", async (req, res) => {
-  // Read query params safely
-  const { page = 1, pageSize = 10, q, fromRoster } = req.query;
+  // Read query params safely (page/pageSize/q)
+  const { page = 1, pageSize = 10, q } = req.query;
+
+  // Accept both param names for robustness: ?fromRosterOnly=... or ?fromRoster=...
+  // Normalize to boolean: true/1/yes/on -> true
+  const rawFromRoster =
+    req.query.fromRosterOnly ?? req.query.fromRoster ?? "";
+
+  const rosterOnly = ["true", "1", "yes", "on"].includes(
+    String(rawFromRoster).trim().toLowerCase()
+  );
 
   // Normalize pagination (defensive defaults)
   const limit = Math.max(parseInt(pageSize, 10) || 10, 1);
@@ -36,12 +45,9 @@ router.get("/teachers", async (req, res) => {
     vi++;
   }
 
-  // Optional filter: fromRoster=true/1 -> only rows where roster_source_id is NOT NULL
-  const wantRosterOnly =
-    typeof fromRoster !== "undefined" &&
-    (fromRoster === "true" || fromRoster === "1");
-  if (wantRosterOnly) {
-    where.push(`t.roster_source_id IS NOT NULL`);
+  // Optional filter: roster only
+  if (rosterOnly) {
+    where.push("t.roster_source_id IS NOT NULL");
   }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -238,83 +244,50 @@ router.delete("/teachers/:id", async (req, res) => {
   }
 });
 
-// PATCH /teachers/:id  — update partial fields (name / email) safely
+// Update a teacher. Accepts either {firstName,lastName,email} or {name,email}.
 router.patch("/teachers/:id", async (req, res) => {
+  const id = req.params.id;
+  const { name, firstName, lastName, email } = req.body || {};
+
+  // Normalize first/last:
+  // Prefer explicit firstName/lastName; if only "name" is provided, split it.
+  let fn = typeof firstName === "string" ? firstName.trim() : null;
+  let ln = typeof lastName === "string" ? lastName.trim() : null;
+
+  if ((!fn || !ln) && typeof name === "string" && name.trim()) {
+    const parts = name.trim().split(/\s+/);
+    if (!fn) fn = parts[0] || "";
+    if (!ln) ln = parts.slice(1).join(" ") || "";
+  }
+
+  const em = typeof email === "string" ? email.trim() : null;
+
   try {
-    const { id } = req.params;
-    const { name, email } = req.body || {};
+    // Only change provided fields; keep others as-is via COALESCE.
+    const { rows } = await pool.query(
+      `
+      UPDATE public.teachers
+      SET
+        first_name = COALESCE($1, first_name),
+        last_name  = COALESCE($2, last_name),
+        email      = COALESCE($3, email),
+        updated_at = NOW()
+      WHERE id = $4
+      RETURNING id, first_name, last_name, email, (roster_source_id IS NOT NULL) AS is_roster
+      `,
+      [fn, ln, em, id]
+    );
 
-    // 1) discover table columns (avoid referencing non-existent columns)
-    const cols = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'teachers'
-    `);
-    const colset = new Set(cols.rows.map(r => r.column_name));
-
-    const hasName      = colset.has("name");
-    const hasFirstName = colset.has("first_name");
-    const hasLastName  = colset.has("last_name");
-    const hasEmail     = colset.has("email");
-
-    // 2) build SET clause dynamically
-    const setParts = [];
-    const params = [];
-    let idx = 1;
-
-    // only set name if the column really exists
-    if (name && hasName) {
-      setParts.push(`name = $${idx++}`);
-      params.push(name.trim());
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Teacher not found" });
     }
-
-    if (email) {
-      if (!hasEmail) {
-        return res.status(500).json({ ok: false, error: "DB schema missing column: email" });
-      }
-      setParts.push(`email = $${idx++}`);
-      params.push(email.trim());
-    }
-
-    if (setParts.length === 0) {
-      return res.status(400).json({ ok: false, error: "No fields to update" });
-    }
-
-    // always bump updated_at when present
-    if (colset.has("updated_at")) {
-      setParts.push(`updated_at = now()`);
-    }
-
-    // 3) name expression for RETURNING (works with/without name column)
-    const nameExpr = hasName
-      ? "name"
-      : hasFirstName && hasLastName
-        ? "concat_ws(' ', first_name, last_name)"
-        : hasFirstName
-          ? "first_name"
-          : hasLastName
-            ? "last_name"
-            : "''";
-
-    params.push(id); // WHERE id = $idx
-
-    const sql = `
-      UPDATE teachers
-      SET ${setParts.join(", ")}
-      WHERE id = $${idx}
-      RETURNING id, ${nameExpr} AS name, ${hasEmail ? "email" : "NULL::text AS email"};
-    `;
-
-    const r = await pool.query(sql, params);
-    if (r.rowCount === 0) {
-      return res.status(404).json({ ok: false, error: "teacher not found" });
-    }
-    return res.json({ ok: true, data: r.rows[0] });
+    return res.json({ ok: true, ...rows[0] });
   } catch (e) {
-    console.error("[PATCH /teachers/:id] DB error:", e?.message);
-    return res.status(500).json({ ok: false, error: "DB update failed" });
+    console.error("PATCH /teachers/:id failed:", e);
+    return res.status(500).json({ ok: false, error: "Internal server error" });
   }
 });
+
 
 
 export default router;

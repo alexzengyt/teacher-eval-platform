@@ -195,26 +195,39 @@ export default function TeachersTable() {
     try {
       setSaving(true);
       setActionErr("");
+
+      const payload = {};
+      if (editName && editName.trim()) {
+        const parts = editName.trim().split(/\s+/);
+        payload.firstName = parts[0] || "";
+        payload.lastName = parts.slice(1).join(" ") || ""; 
+      }
+      if (editEmail && editEmail.trim()) {
+        payload.email = editEmail.trim();
+      }
+
+      console.log("PATCH payload I am sending:", payload); 
+
       const json = await apiFetch(`/api/eval/teachers/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(editName  ? { name:  editName.trim()  } : {}),
-          ...(editEmail ? { email: editEmail.trim() } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!json.ok) {
         setActionErr(json.error || "Update failed");
         return;
       }
-      await fetchPage({ pageArg: page, pageSizeArg: pageSize, qArg: q, fromRosterArg: fromRosterOnly });
+
+      // Refresh list from server so the UI reflects updated name/email
+      await fetchPage({ pageArg: page, pageSizeArg: pageSize, qArg: q, fromRosterOnlyArg: fromRosterOnly });
       cancelEdit();
     } catch (e) {
       setActionErr(e.message || "Network error");
     } finally {
       setSaving(false);
     }
+
   }
 
   async function handleDelete(id) {

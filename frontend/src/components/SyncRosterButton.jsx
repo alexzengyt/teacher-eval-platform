@@ -1,8 +1,7 @@
-// frontend/src/components/SyncRosterButton.jsx
 import React, { useMemo, useState, useEffect } from "react";
-import { apiFetch } from "../lib/api.js"; // 注意：从 components -> lib 的相对路径
+import { apiFetch } from "../lib/api.js"; 
 
-// Read JWT payload from localStorage (简单解析，不绑死 key)
+// Read JWT payload from localStorage 
 function readJwtPayload() {
   for (const [, v] of Object.entries(localStorage)) {
     if (typeof v === "string" && v.split(".").length === 3) {
@@ -18,7 +17,6 @@ export default function SyncRosterButton() {
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
 
-  // 非管理员不显示按钮（后端也有校验）
   if (!isAdmin) return null;
 
   async function refreshStatus() {
