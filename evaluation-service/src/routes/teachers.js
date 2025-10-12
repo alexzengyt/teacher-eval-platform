@@ -288,6 +288,52 @@ router.patch("/teachers/:id", async (req, res) => {
   }
 });
 
+router.get("/reports/summary", async (req, res) => {
+  try {
+    const sql = `
+      SELECT
+        (SELECT COUNT(*) FROM public.teachers) AS total_teachers,
+        (SELECT COUNT(*) FROM public.teachers WHERE roster_source_id IS NOT NULL) AS roster_count,
+        (SELECT COUNT(*) FROM public.teachers WHERE roster_source_id IS NULL) AS manual_count,
+        (SELECT COUNT(*) FROM public.teachers WHERE email IS NULL OR TRIM(email) = '') AS missing_email
+    `;
+    const { rows } = await pool.query(sql);
+    return res.json({ ok: true, ...rows[0] });
+  } catch (e) {
+    console.error("GET /reports/summary failed:", e);
+    return res.status(500).json({ ok: false, error: "Internal server error" });
+  }
+});
 
+// GET /api/eval/reports/teachers.csv
+router.get("/reports/teachers.csv", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        id, first_name, last_name, email,
+        (roster_source_id IS NOT NULL) AS is_roster,
+        created_at, updated_at
+      FROM public.teachers
+      ORDER BY created_at DESC
+    `);
+
+    const headers = ["id","first_name","last_name","email","is_roster","created_at","updated_at"];
+    const lines = [headers.join(",")].concat(
+      rows.map(r => headers.map(h => {
+        const v = r[h];
+        if (v == null) return "";
+        const s = String(v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(","))
+    );
+    const csv = lines.join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="teachers.csv"');
+    res.send(csv);
+  } catch (e) {
+    console.error("GET /reports/teachers.csv failed:", e);
+    res.status(500).json({ ok: false, error: "Internal server error" });
+  }
+});
 
 export default router;

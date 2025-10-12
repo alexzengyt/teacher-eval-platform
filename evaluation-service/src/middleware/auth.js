@@ -16,7 +16,17 @@ export function requireAuth(req, res, next) {
     return next();
   }
 
-  const header = req.headers.authorization || "";
+  // Read token from header (authorization/Authorization) or from query (?authorization=Bearer%20<token>)
+  // This is handy for file downloads where some proxies strip Authorization headers.
+  let header =
+    req.headers.authorization ||
+    req.headers.Authorization ||
+    (req.query && req.query.authorization) ||
+    "";
+  // If it came from query, it may be URL-encoded like "Bearer%20<token>"
+  try { header = decodeURIComponent(header); } catch (_) {}
+  // Normalize extra spaces
+  header = header.replace(/\s+/, " ").trim();
   const [type, token] = header.split(" ");
 
   if (type !== "Bearer" || !token) {

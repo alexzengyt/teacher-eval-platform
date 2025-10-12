@@ -45,6 +45,8 @@ export default function TeachersTable() {
   const [deletingId, setDeletingId] = useState(null);    // for DELETE feedback
   const [actionErr, setActionErr]   = useState("");
 
+  const [report, setReport] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
   // ---------- Fetch function ----------
   async function fetchPage({
     pageArg = page,
@@ -249,12 +251,85 @@ export default function TeachersTable() {
     }
   }
 
+  // Load summary counts (uses apiFetch so Authorization header is included)
+  async function loadReport() {
+    try {
+      setLoadingReport(true);
+      const json = await apiFetch("/api/eval/reports/summary");
+      if (json.ok) setReport(json);
+    } catch (e) {
+      console.error("loadReport failed:", e);
+    } finally {
+      setLoadingReport(false);
+    }
+  }
+
+  // Download CSV (send token in header + query; use API_BASE so it hits 8080)
+  async function downloadCsv() {
+    try {
+      // 1) read token from localStorage
+      const token = localStorage.getItem("token") || "";
+
+      // 2) build URL with query fallback: ?authorization=Bearer%20<token>
+      const url = `${API_BASE}/api/eval/reports/teachers.csv?authorization=${encodeURIComponent(
+        `Bearer ${token}`
+      )}`;
+
+      // 3) fire the request; keep Authorization header as the primary path
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // 4) handle non-200
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => "");
+        console.error("[CSV] failed", resp.status, body);
+        alert(`CSV download failed (${resp.status})`);
+        return;
+      }
+
+      // 5) download the blob as teachers.csv
+      const blob = await resp.blob();
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl;
+      a.download = "teachers.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(dlUrl);
+    } catch (e) {
+      console.error("downloadCsv error:", e);
+      alert("Download error");
+    }
+  }
+
+
   return (
     <div style={{ padding: 12 }}>
       {/* Header + Sync button */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Teachers</h2>
         <SyncRosterButton />  {/* admin-only UI */}
+      </div>
+      {/* ------- Reports Panel ------- */}
+      <div style={{ margin: "12px 0", padding: 12, border: "1px solid #ddd", borderRadius: 8 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
+          <button onClick={loadReport} disabled={loadingReport}>
+            {loadingReport ? "Loading report..." : "Load Report"}
+          </button>
+          <button onClick={downloadCsv}>Download CSV</button>
+        </div>
+
+        {report && (
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <div><b>Total teachers:</b> {report.total_teachers}</div>
+            <div><b>Roster:</b> {report.roster_count}</div>
+            <div><b>Manual:</b> {report.manual_count}</div>
+            <div><b>Missing email:</b> {report.missing_email}</div>
+          </div>
+        )}
       </div>
       {/* Search + page size controls */}
       <form onSubmit={onSearchSubmit} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
