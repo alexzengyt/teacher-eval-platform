@@ -355,6 +355,8 @@ router.get("/reports/teachers.pdf", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="teachers.pdf"');
     doc.pipe(res);
+    const fmt = (d) => new Date(d).toLocaleString("en-US", { hour12: false });
+
 
     // 3) Title
     doc.fontSize(16).text("Teachers Report", { align: "center" });
@@ -363,15 +365,19 @@ router.get("/reports/teachers.pdf", async (req, res) => {
        .text(`Generated at: ${new Date().toUTCString()}`, { align: "center" });
     doc.moveDown(1).fillColor("black");
 
+    doc.fontSize(10);
+    doc.lineGap(2);
+
     // 4) Simple table header
     const headers = ["id","first_name","last_name","email","is_roster","created_at","updated_at"];
-    const colWidths = [120, 80, 80, 170, 60, 120, 120];
+    const colWidths = [110, 90, 90, 200, 70, 90];
+    const GUTTER = 8;
     let x = 36;
 
     doc.font("Helvetica-Bold");
     headers.forEach((h, i) => {
-      doc.text(h, x, doc.y, { width: colWidths[i], continued: i !== headers.length - 1 });
-      x += colWidths[i];
+      doc.text(h, x, doc.y, { width: colWidths[i], continued: i !== headers.length - 1, ellipsis: true });
+      x += colWidths[i]+ GUTTER;
     });
     doc.moveDown(0.4);
     doc.font("Helvetica");
@@ -379,29 +385,50 @@ router.get("/reports/teachers.pdf", async (req, res) => {
     doc.moveDown(0.3);
 
     // 5) Rows
-    rows.forEach(r => {
-      let xi = 36;
-      const vals = [
-        r.id,
+    rows.forEach((r) => {
+      const cells = [
+        r.id || "",
         r.first_name || "",
         r.last_name || "",
         r.email || "",
         r.is_roster ? "TRUE" : "FALSE",
-        new Date(r.created_at).toUTCString(),
-        new Date(r.updated_at).toUTCString(),
+        fmt(r.created_at),
+        fmt(r.updated_at),
       ];
-      vals.forEach((v, i) => {
-        doc.text(String(v), xi, doc.y, { width: colWidths[i], continued: i !== vals.length - 1 });
-        xi += colWidths[i];
+
+      const paddy = 6;
+      const heights = cells.map((v, i) =>
+        doc.heightOfString(String(v), { width: colWidths[i] })
+      );
+      const rowH = Math.max(12, ...heights) + paddy;
+
+      const startY = doc.y;
+      let xi = 36;
+      cells.forEach((v, i) => {
+        doc.text(String(v), xi, startY, {
+          width: colWidths[i],
+          continued: false,
+        });
+        xi += colWidths[i] + GUTTER;
       });
-      doc.moveDown(0.2);
+
+      doc.y = startY + rowH;
+      doc
+        .strokeColor("#eeeeee")
+        .moveTo(36, doc.y)
+        .lineTo(559, doc.y)
+        .stroke()
+        .strokeColor("black");
     });
+
 
     // 6) Finish
     doc.end();
   } catch (e) {
     console.error("GET /reports/teachers.pdf failed:", e);
-    return res.status(500).json({ ok: false, error: "Internal server error" });
+    if (!res.headersSent) {
+      return res.status(500).json({ ok: false, error: "Internal server error" });
+    }
   }
 });
 
