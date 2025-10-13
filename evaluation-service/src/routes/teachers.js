@@ -337,6 +337,43 @@ router.get("/reports/teachers.csv", async (req, res) => {
   }
 });
 
+const HEADERS = ["id","first_name","last_name","email","is_roster","created_at","updated_at"];
+const COL_WIDTHS = [110, 90, 90, 200, 70, 90];
+const GUTTER = 8;
+
+// ---- PDF helpers: header & footer ----
+function drawHeader(doc, fmt) {
+  doc.font("Helvetica-Bold").fontSize(16).text("Teachers Report", { align: "center" });
+  doc.moveDown(0.3);
+  doc.fontSize(10).fillColor("#666")
+     .text(`Generated at: ${fmt(new Date())}`, { align: "center" })
+     .fillColor("black");
+  doc.moveDown(0.6);
+  doc.moveTo(36, doc.y).lineTo(559, doc.y).stroke();
+
+  let x = 36;
+
+  doc.moveDown(0.4);
+  doc.font("Helvetica-Bold").fontSize(10);
+  HEADERS.forEach((h, i) => {
+    doc.text(h, x, doc.y, { width: COL_WIDTHS[i], continued: i !== HEADERS.length - 1, ellipsis: true });
+    x += COL_WIDTHS[i] + GUTTER;
+  });
+  doc.moveDown(0.4);
+  doc.font("Helvetica");
+  doc.moveTo(36, doc.y).lineTo(559, doc.y).stroke();
+  doc.moveDown(0.3);
+}
+
+function drawFooter(doc) {
+  // const text = `Page ${doc.page.number}`;
+  // doc.fontSize(9).fillColor("#666")
+  //    .text(text, 36, doc.page.height - 36, { align: "right", width: 523 });
+  // doc.fillColor("black");
+}
+// ---- end helpers ----
+
+
 // GET /api/eval/reports/teachers.pdf
 router.get("/reports/teachers.pdf", async (req, res) => {
   try {
@@ -358,31 +395,22 @@ router.get("/reports/teachers.pdf", async (req, res) => {
     const fmt = (d) => new Date(d).toLocaleString("en-US", { hour12: false });
 
 
+    // Guard against re-entrancy while drawing header/footer
+    // let paintingHeader = false;
+
+    // function onPageAdded() {
+    //   if (paintingHeader) return;       // prevent re-entrant recursion
+    //   paintingHeader = true;
+    //   drawHeader(doc, fmt);
+    //   drawFooter(doc);
+    //   paintingHeader = false;
+    // }
+
+    // doc.on("pageAdded", onPageAdded);
+
+
     // 3) Title
-    doc.fontSize(16).text("Teachers Report", { align: "center" });
-    doc.moveDown(0.5);
-    doc.fontSize(10).fillColor("#666")
-       .text(`Generated at: ${new Date().toUTCString()}`, { align: "center" });
-    doc.moveDown(1).fillColor("black");
-
-    doc.fontSize(10);
-    doc.lineGap(2);
-
-    // 4) Simple table header
-    const headers = ["id","first_name","last_name","email","is_roster","created_at","updated_at"];
-    const colWidths = [110, 90, 90, 200, 70, 90];
-    const GUTTER = 8;
-    let x = 36;
-
-    doc.font("Helvetica-Bold");
-    headers.forEach((h, i) => {
-      doc.text(h, x, doc.y, { width: colWidths[i], continued: i !== headers.length - 1, ellipsis: true });
-      x += colWidths[i]+ GUTTER;
-    });
-    doc.moveDown(0.4);
-    doc.font("Helvetica");
-    doc.moveTo(36, doc.y).lineTo(559, doc.y).stroke();
-    doc.moveDown(0.3);
+    drawHeader(doc, fmt);
 
     // 5) Rows
     rows.forEach((r) => {
@@ -398,7 +426,7 @@ router.get("/reports/teachers.pdf", async (req, res) => {
 
       const paddy = 6;
       const heights = cells.map((v, i) =>
-        doc.heightOfString(String(v), { width: colWidths[i] })
+        doc.heightOfString(String(v), { width: COL_WIDTHS[i] })
       );
       const rowH = Math.max(12, ...heights) + paddy;
 
@@ -406,10 +434,10 @@ router.get("/reports/teachers.pdf", async (req, res) => {
       let xi = 36;
       cells.forEach((v, i) => {
         doc.text(String(v), xi, startY, {
-          width: colWidths[i],
+          width: COL_WIDTHS[i],
           continued: false,
         });
-        xi += colWidths[i] + GUTTER;
+        xi += COL_WIDTHS[i] + GUTTER;
       });
 
       doc.y = startY + rowH;
@@ -421,7 +449,7 @@ router.get("/reports/teachers.pdf", async (req, res) => {
         .strokeColor("black");
     });
 
-
+    // rawFooter(doc);
     // 6) Finish
     doc.end();
   } catch (e) {
