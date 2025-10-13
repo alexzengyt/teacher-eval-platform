@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api.js";
 import SyncRosterButton from "./SyncRosterButton";
+import { getToken, clearToken } from "../lib/token";
 
 /**
  * TeachersTable
@@ -268,18 +269,22 @@ export default function TeachersTable() {
   async function downloadCsv() {
     try {
       // 1) read token from localStorage
-      const token = localStorage.getItem("token") || "";
+      const token = getToken() || "";
 
       // 2) build URL with query fallback: ?authorization=Bearer%20<token>
-      const url = `${API_BASE}/api/eval/reports/teachers.csv?authorization=${encodeURIComponent(
-        `Bearer ${token}`
-      )}`;
+      const url = `${API_BASE}/api/eval/reports/teachers.csv`;
 
       // 3) fire the request; keep Authorization header as the primary path
       const resp = await fetch(url, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (resp.status === 401) {
+        alert("Your session has expired. Please log in again.");
+        clearToken();
+        window.location.replace("/login"); // simple redirect
+        return;
+      }
 
       // 4) handle non-200
       if (!resp.ok) {
