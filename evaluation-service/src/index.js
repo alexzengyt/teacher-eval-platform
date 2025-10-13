@@ -11,9 +11,6 @@ import submitRoutes from "./routes/submit.js";
 import publishRoutes from "./routes/publish.js";
 import reportsRouter from "./routes/reports.js";
 
-
-
-
 // Load .env variables
 dotenv.config();
 
@@ -22,6 +19,25 @@ const port = 3002;
 
 
 app.use(express.json())
+app.use(
+  "/demo",
+  express.static("frontend", {
+    setHeaders: (res) => {
+      res.setHeader(
+        "Content-Security-Policy",
+        [
+          "default-src 'self'",
+          "script-src 'self' https://cdn.jsdelivr.net",
+          "style-src 'self' 'unsafe-inline'",
+          "connect-src 'self'",
+          "img-src 'self' data:",
+        ].join("; ")
+      );
+    },
+  })
+);
+
+
 app.use("/api/eval", readOnlyRoutes);
 app.use("/api/eval/secure", requireAuth, draftRoutes);  
 app.use("/api/eval/secure", requireAuth, submitRoutes); 
