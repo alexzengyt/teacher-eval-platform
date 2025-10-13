@@ -347,6 +347,21 @@ export default function TeachersTable() {
       alert("Failed to download PDF. Please try again.");
     }
   }
+  
+  // Open the demo overview page for a given teacher id
+  const openOverview = (teacher) => {
+    // Some data rows use id, some use teacher_id — support both
+    const id = teacher.id ?? teacher.teacher_id;
+    if (!id) {
+      console.error("Missing teacher id for overview:", teacher);
+      return;
+    }
+
+    // Use gateway origin so it hits nginx (NOT the Vite dev server)
+    const GATEWAY_ORIGIN = import.meta.env.VITE_GATEWAY_ORIGIN ?? "http://localhost:8080";
+    const url = `${GATEWAY_ORIGIN}/demo/overview.html?teacher_id=${encodeURIComponent(id)}`;
+    window.open(url, "_blank", "noopener");
+  };
 
 
   return (
@@ -470,6 +485,7 @@ export default function TeachersTable() {
             <th style={th}>Name</th>
             <th style={th}>Email</th>
             <th>Actions</th>
+            <th style={th}>Overview</th>
           </tr>
         </thead>
         <tbody>
@@ -549,6 +565,17 @@ export default function TeachersTable() {
                       </button>
                     </>
                   )}
+                </td>
+
+                {/* NEW: Overview column */}
+                <td style={td}>
+                  <button
+                    onClick={() => openOverview(t)}
+                    className="px-2 py-1 rounded bg-indigo-600 text-white hover:opacity-90"
+                    title="Open overview"
+                  >
+                    Open
+                  </button>
                 </td>
               </tr>
             ))
