@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { pool } from "./db.js";
 import { requireAuth } from "./middleware/auth.js";
 import teachersRouter from "./routes/teachers.js";
+import readOnlyRoutes from "./routes/readOnly.js";
 
 // Load .env variables
 dotenv.config();
@@ -14,7 +15,9 @@ const port = 3002;
 
 
 app.use(express.json())
+app.use("/api/eval", readOnlyRoutes);
 app.use("/api/eval", requireAuth, teachersRouter);
+
 
 // Route to check DB connection
 app.get("/health/db", async (req, res) => {
