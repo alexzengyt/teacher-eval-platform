@@ -50,4 +50,49 @@ router.get("/teachers/:id/evaluations", async (req, res) => {
   }
 });
 
+// GET /api/eval/teachers/:id/overview
+router.get("/teachers/:id/overview", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const t = await pool.query(
+      "SELECT id, first_name, last_name, email FROM teachers WHERE id = $1",
+      [id]
+    );
+    if (t.rowCount === 0) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    const ev = await pool.query(
+      `SELECT id, overall_score, period, metadata, published_at, created_at, updated_at
+         FROM evaluations
+        WHERE teacher_id = $1 AND status = 'published'
+     ORDER BY published_at DESC NULLS LAST, updated_at DESC
+        LIMIT 1`,
+      [id]
+    );
+
+    if (ev.rowCount === 0) {
+      return res.json({ teacher: t.rows[0], evaluation: null });
+    }
+
+    const e = ev.rows[0];
+    res.json({
+      teacher: t.rows[0],
+      evaluation: {
+        id: e.id,
+        period: e.period,
+        overall_score: e.overall_score,
+        cards: (e.metadata && e.metadata.cards) || null,
+        radar: (e.metadata && e.metadata.radar) || null,
+        notes: (e.metadata && e.metadata.notes) || null,
+        published_at: e.published_at,
+      },
+    });
+  } catch (err) {
+    console.error("overview error", err);
+    res.status(500).json({ ok: false, error: "internal_error" });
+  }
+});
+
 export default router;
