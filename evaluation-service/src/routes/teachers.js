@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "../db.js";
 import { randomUUID } from "crypto";
+import PDFDocument from "pdfkit";
 
 
 const router = express.Router();
@@ -335,5 +336,74 @@ router.get("/reports/teachers.csv", async (req, res) => {
     res.status(500).json({ ok: false, error: "Internal server error" });
   }
 });
+
+// GET /api/eval/reports/teachers.pdf
+router.get("/reports/teachers.pdf", async (req, res) => {
+  try {
+    // 1) Load the same data used by CSV
+    const { rows } = await pool.query(`
+      SELECT
+        id, first_name, last_name, email,
+        (roster_source_id IS NOT NULL) AS is_roster,
+        created_at, updated_at
+      FROM public.teachers
+      ORDER BY created_at DESC
+    `);
+
+    // 2) Create PDF stream
+    const doc = new PDFDocument({ size: "A4", margin: 36 }); // ~0.5 inch margin
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", 'attachment; filename="teachers.pdf"');
+    doc.pipe(res);
+
+    // 3) Title
+    doc.fontSize(16).text("Teachers Report", { align: "center" });
+    doc.moveDown(0.5);
+    doc.fontSize(10).fillColor("#666")
+       .text(`Generated at: ${new Date().toUTCString()}`, { align: "center" });
+    doc.moveDown(1).fillColor("black");
+
+    // 4) Simple table header
+    const headers = ["id","first_name","last_name","email","is_roster","created_at","updated_at"];
+    const colWidths = [120, 80, 80, 170, 60, 120, 120];
+    let x = 36;
+
+    doc.font("Helvetica-Bold");
+    headers.forEach((h, i) => {
+      doc.text(h, x, doc.y, { width: colWidths[i], continued: i !== headers.length - 1 });
+      x += colWidths[i];
+    });
+    doc.moveDown(0.4);
+    doc.font("Helvetica");
+    doc.moveTo(36, doc.y).lineTo(559, doc.y).stroke();
+    doc.moveDown(0.3);
+
+    // 5) Rows
+    rows.forEach(r => {
+      let xi = 36;
+      const vals = [
+        r.id,
+        r.first_name || "",
+        r.last_name || "",
+        r.email || "",
+        r.is_roster ? "TRUE" : "FALSE",
+        new Date(r.created_at).toUTCString(),
+        new Date(r.updated_at).toUTCString(),
+      ];
+      vals.forEach((v, i) => {
+        doc.text(String(v), xi, doc.y, { width: colWidths[i], continued: i !== vals.length - 1 });
+        xi += colWidths[i];
+      });
+      doc.moveDown(0.2);
+    });
+
+    // 6) Finish
+    doc.end();
+  } catch (e) {
+    console.error("GET /reports/teachers.pdf failed:", e);
+    return res.status(500).json({ ok: false, error: "Internal server error" });
+  }
+});
+
 
 export default router;

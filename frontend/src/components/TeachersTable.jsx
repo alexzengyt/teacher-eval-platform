@@ -310,6 +310,44 @@ export default function TeachersTable() {
     }
   }
 
+  // Download a PDF version of the teachers report
+  async function downloadPdf() {
+    const token = getToken() || "";
+    const url = `${API_BASE}/api/eval/reports/teachers.pdf`;
+
+    try {
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // handle auth expiry the same way as CSV
+      if (resp.status === 401) {
+        alert("Your session has expired. Please log in again.");
+        clearToken?.(); // if you already import clearToken, this will run; otherwise it's a no-op
+        window.location.replace("/login");
+        return;
+      }
+
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`PDF download failed: ${resp.status} ${text}`);
+      }
+
+      const blob = await resp.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "teachers.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download PDF. Please try again.");
+    }
+  }
+
 
   return (
     <div style={{ padding: 12 }}>
@@ -325,6 +363,7 @@ export default function TeachersTable() {
             {loadingReport ? "Loading report..." : "Load Report"}
           </button>
           <button onClick={downloadCsv}>Download CSV</button>
+          <button onClick={downloadPdf} className="btn btn-primary">Download PDF</button>
         </div>
 
         {report && (
