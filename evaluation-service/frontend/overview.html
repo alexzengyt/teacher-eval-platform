@@ -2,57 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Teacher Overview</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/demo/overview.js" defer></script>
+  <title>Teacher Overview</title>
+
+  <!-- Chart.js (allowed by your CSP setHeaders using jsdelivr) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    body{font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f7f7fb;margin:0;padding:24px;color:#111}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#fafafa;margin:0;padding:24px;color:#111}
     .container{max-width:1100px;margin:0 auto}
     .header{display:flex;align-items:center;gap:16px;margin-bottom:16px}
-    .avatar{width:56px;height:56px;border-radius:9999px;background:#e5e7eb}
+    .avatar{width:56px;height:56px;border-radius:999px;background:#e5e7eb}
     h1{font-size:22px;margin:0}
     .sub{color:#666;margin:4px 0 0}
+    .pill{display:inline-block;background:#6366f1;color:#fff;font-size:12px;padding:3px 8px;border-radius:999px}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
-    .card{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:14px}
+    .card{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:12px 14px}
     .label{font-size:12px;color:#6b7280;margin-bottom:6px}
     .value{font-size:22px;font-weight:700}
     .row{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-top:18px}
-    canvas{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:12px}
+    canvas{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:10px}
     .note{font-size:13px;color:#555;margin-top:10px}
-    .pill{display:inline-block;background:#6366f1;color:#fff;font-size:12px;padding:3px 8px;border-radius:999px;margin-left:8px}
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- header -->
     <div class="header">
       <div class="avatar"></div>
       <div>
-        <h1 id="name">Teacher</h1>
-        <div class="sub">Overall <span id="overall">–</span>
-          <span id="period" class="pill"></span>
+        <h1 id="name"></h1>
+        <div class="sub">
+          <span id="overall"></span>
+          <span class="pill" id="period"></span>
         </div>
       </div>
     </div>
 
+    <!-- cards -->
     <div class="grid">
-      <div class="card"><div class="label">Teaching Effectiveness</div><div class="value" id="v-teach">–</div></div>
-      <div class="card"><div class="label">Research Output</div><div class="value" id="v-research">–</div></div>
-      <div class="card"><div class="label">Service Contribution</div><div class="value" id="v-service">–</div></div>
-      <div class="card"><div class="label">Grant Funding</div><div class="value" id="v-grant">–</div></div>
+      <div class="card"><div class="label">Teaching Effectiveness</div><div class="value" id="teaching">—</div></div>
+      <div class="card"><div class="label">Research Output</div>      <div class="value" id="research">—</div></div>
+      <div class="card"><div class="label">Service Contribution</div>  <div class="value" id="service">—</div></div>
+      <div class="card"><div class="label">Grant Funding</div>         <div class="value" id="grant">—</div></div>
     </div>
 
+    <!-- radar -->
     <div class="row">
       <canvas id="radar" height="240"></canvas>
-      <div class="card">
-        <div class="label">Notes</div>
-        <div class="note" id="notes">–</div>
-        <div class="label" style="margin-top:12px">Published at</div>
-        <div id="pub">–</div>
+      <div class="note">
+        This is a minimal demo view rendered from <code>/api/eval/teachers/:id/overview</code>.
       </div>
     </div>
   </div>
 
+  <!-- your script -->
+  <script src="./overview.js"></script>
 </body>
 </html>
