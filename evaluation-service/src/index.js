@@ -23,10 +23,12 @@ const port = 3002;
 
 app.use(express.json())
 app.use("/api/eval", readOnlyRoutes);
+app.use("/api/eval", requireAuth, teachersRouter);
 app.use("/api/eval/secure", requireAuth, draftRoutes);  
 app.use("/api/eval/secure", requireAuth, submitRoutes); 
 app.use("/api/eval/secure", requireAuth, publishRoutes);
-app.use("/api/eval/secure", requireAuth, teachersRouter); 
+
+
 app.use("/api/eval/secure", requireAuth, reportsRouter);
 
 
