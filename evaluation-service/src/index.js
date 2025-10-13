@@ -9,6 +9,7 @@ import readOnlyRoutes from "./routes/readOnly.js";
 import draftRoutes from "./routes/draft.js";
 import submitRoutes from "./routes/submit.js";
 import publishRoutes from "./routes/publish.js";
+import reportsRouter from "./routes/reports.js";
 
 
 
@@ -22,8 +23,9 @@ const port = 3002;
 
 app.use(express.json())
 app.use("/api/eval", readOnlyRoutes);
-app.use("/api/eval", requireAuth, draftRoutes);
+app.use("/api/eval", reportsRouter);
 
+app.use("/api/eval", requireAuth, draftRoutes);
 app.use("/api/eval/secure", requireAuth, submitRoutes);
 app.use("/api/eval", requireAuth, teachersRouter);
 app.use("/api/eval/secure", requireAuth, publishRoutes);
