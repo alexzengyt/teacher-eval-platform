@@ -7,6 +7,8 @@ import { requireAuth } from "./middleware/auth.js";
 import teachersRouter from "./routes/teachers.js";
 import readOnlyRoutes from "./routes/readOnly.js";
 import draftRoutes from "./routes/draft.js";
+import submitRoutes from "./routes/submit.js";
+
 
 
 // Load .env variables
@@ -19,6 +21,7 @@ const port = 3002;
 app.use(express.json())
 app.use("/api/eval", readOnlyRoutes);
 app.use("/api/eval", requireAuth, draftRoutes);
+app.use("/api/eval/secure", requireAuth, submitRoutes);
 app.use("/api/eval", requireAuth, teachersRouter);
 
 
