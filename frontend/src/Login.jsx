@@ -198,6 +198,60 @@ export default function Login() {
           </button>
         </form>
 
+        {/* Divider */}
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          margin: "24px 0",
+          gap: "12px"
+        }}>
+          <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+          <span style={{ color: "#6b7280", fontSize: "14px", fontWeight: "500" }}>OR</span>
+          <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+        </div>
+
+        {/* Schoolday SSO Button */}
+        <button
+          type="button"
+          onClick={() => {
+            // Redirect to Schoolday SSO login
+            // For demo, we'll use a specific demo user
+            const demoUser = "peiyao@example.com"; // You can change this
+            window.location.href = `http://localhost:8080/api/auth/schoolday/login?demo_user=${demoUser}`;
+          }}
+          style={{
+            width: "100%",
+            padding: "12px 24px",
+            background: "white",
+            color: "#1f2937",
+            border: "2px solid #e5e7eb",
+            borderRadius: "8px",
+            fontSize: "16px",
+            fontWeight: "600",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px"
+          }}
+          onMouseOver={(e) => {
+            e.target.style.borderColor = "#6366f1";
+            e.target.style.background = "#f8fafc";
+            e.target.style.transform = "translateY(-1px)";
+            e.target.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1)";
+          }}
+          onMouseOut={(e) => {
+            e.target.style.borderColor = "#e5e7eb";
+            e.target.style.background = "white";
+            e.target.style.transform = "translateY(0)";
+            e.target.style.boxShadow = "none";
+          }}
+        >
+          <span style={{ fontSize: "20px" }}>🏫</span>
+          Sign in with Schoolday
+        </button>
+
         {err && (
           <div style={{ 
             marginTop: "16px",

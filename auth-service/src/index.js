@@ -58,6 +58,7 @@ app.get('/api/auth/me', (req, res) => {
 // ========== Schoolday SSO Integration ==========
 
 const SD_BASE_URL = process.env.SD_BASE_URL || 'http://mock-schoolday-service:7001';
+const SD_PUBLIC_URL = process.env.SD_PUBLIC_URL || 'http://localhost:7001'; // For browser redirects
 const SD_CLIENT_ID = process.env.SD_CLIENT_ID || 'dev-client';
 const SD_CLIENT_SECRET = process.env.SD_CLIENT_SECRET || 'dev-secret';
 
@@ -132,7 +133,8 @@ app.get('/api/auth/schoolday/login', (req, res) => {
   const redirectUri = process.env.SD_REDIRECT_URI || 'http://localhost:8080/api/auth/schoolday/callback';
   const state = Math.random().toString(36).substring(7); // CSRF protection
   
-  let authorizeUrl = `${SD_BASE_URL}/oauth/authorize?` +
+  // Use SD_PUBLIC_URL for browser redirects (localhost instead of container name)
+  let authorizeUrl = `${SD_PUBLIC_URL}/oauth/authorize?` +
     `response_type=code&` +
     `client_id=${SD_CLIENT_ID}&` +
     `redirect_uri=${encodeURIComponent(redirectUri)}&` +

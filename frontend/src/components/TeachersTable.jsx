@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api.js";
 import SyncRosterButton from "./SyncRosterButton";
+import WebhookSubscribeButton from "./WebhookSubscribeButton";
 import { getToken, clearToken } from "../lib/token";
 
 /**
@@ -418,7 +419,10 @@ export default function TeachersTable() {
             Manage teacher profiles and evaluation data
           </p>
         </div>
-        <SyncRosterButton />  {/* admin-only UI */}
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <SyncRosterButton />  {/* admin-only UI */}
+          <WebhookSubscribeButton />  {/* admin-only UI */}
+        </div>
       </div>
 
       {/* ------- Reports Panel ------- */}

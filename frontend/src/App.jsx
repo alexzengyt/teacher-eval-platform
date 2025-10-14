@@ -1,9 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Login from "./Login.jsx";
-import { isLoggedIn, clearToken } from "./lib/token.js";
+import { isLoggedIn, clearToken, setToken } from "./lib/token.js";
 import TeachersTable from "./components/TeachersTable.jsx";
 
 export default function App() {
+  // Handle SSO callback - check for sso_token in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ssoToken = params.get('sso_token');
+    const ssoProvider = params.get('sso_provider');
+    
+    if (ssoToken) {
+      console.log(`[SSO] Received token from ${ssoProvider || 'unknown provider'}`);
+      // Save the token
+      setToken(ssoToken);
+      // Clean up URL by redirecting to home without query params
+      window.history.replaceState({}, document.title, '/');
+      // Force reload to show authenticated state
+      window.location.reload();
+    }
+  }, []);
+
   if (!isLoggedIn()) return <Login />;
 
   return (

@@ -12,35 +12,8 @@ app.get("/healthz", (req, res) => {
   res.json({ ok: true, service: "mock-schoolday" });
 });
 
-app.post("/oauth/token", (req, res) => {
-  // Read fields from JSON or form body
-  const {
-    grant_type,
-    client_id,
-    client_secret,
-    scope = "discovery roster.read",
-  } = req.body || {};
-
-  // Validate grant type
-  if (grant_type !== "client_credentials") {
-    return res.status(400).json({ error: "unsupported_grant_type" });
-  }
-
-  // Validate client against env
-  const expectedId = process.env.SD_EXPECTED_CLIENT_ID || "dev-client";
-  const expectedSecret = process.env.SD_EXPECTED_CLIENT_SECRET || "dev-secret";
-  if (client_id !== expectedId || client_secret !== expectedSecret) {
-    return res.status(401).json({ error: "invalid_client" });
-  }
-
-  // Return a static token for now
-  return res.json({
-    access_token: "mock_sd_access_token_123",
-    token_type: "Bearer",
-    expires_in: 3600,
-    scope,
-  });
-});
+// NOTE: The /oauth/token endpoint is defined later in the file (after OAuth 2.0 SSO section)
+// to support both client_credentials and authorization_code grant types
 
 // Simple Bearer token guard for protected endpoints
 function requireBearer(req, res, next) {
@@ -174,6 +147,10 @@ app.get("/oauth/authorize", (req, res) => {
 // POST /oauth/token - Exchange authorization code for access token (for SSO)
 // This handles both client_credentials (existing) and authorization_code (new)
 app.post("/oauth/token", (req, res) => {
+  console.error("[oauth/token] ===== REQUEST RECEIVED =====");
+  console.error("[oauth/token] Request body:", JSON.stringify(req.body));
+  console.error("[oauth/token] Content-Type:", req.headers['content-type']);
+  
   const {
     grant_type,
     client_id,
@@ -182,6 +159,9 @@ app.post("/oauth/token", (req, res) => {
     redirect_uri,
     scope = "discovery roster.read",
   } = req.body || {};
+
+  console.error("[oauth/token] grant_type:", grant_type);
+  console.error("[oauth/token] client_id:", client_id);
 
   const expectedId = process.env.SD_EXPECTED_CLIENT_ID || "dev-client";
   const expectedSecret = process.env.SD_EXPECTED_CLIENT_SECRET || "dev-secret";
