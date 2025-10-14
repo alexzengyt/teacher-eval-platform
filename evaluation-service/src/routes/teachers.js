@@ -460,5 +460,166 @@ router.get("/reports/teachers.pdf", async (req, res) => {
   }
 });
 
+// ========== NEW API ENDPOINTS FOR MULTI-TAB INTERFACE ==========
+
+/**
+ * GET /api/eval/teachers/:id/courses
+ * Returns courses taught by a teacher
+ */
+router.get("/teachers/:id/courses", async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    
+    const sql = `
+      SELECT 
+        c.id,
+        c.code,
+        c.title,
+        s.term as period,
+        COUNT(DISTINCT e.id) as student_count,
+        AVG(e.score) as avg_rating
+      FROM teachers t
+      JOIN teaching_assignments ta ON ta.teacher_id = t.id
+      JOIN sections s ON s.id = ta.section_id
+      JOIN courses c ON c.id = s.course_id
+      LEFT JOIN (
+        -- Mock student evaluations (would come from a real evaluations table)
+        SELECT section_id, 4.5 as score, gen_random_uuid() as id
+        FROM sections LIMIT 100
+      ) e ON e.section_id = s.id
+      WHERE t.id = $1
+      GROUP BY c.id, c.code, c.title, s.term
+      ORDER BY s.term DESC
+      LIMIT 50
+    `;
+    
+    const { rows } = await pool.query(sql, [teacherId]);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /teachers/:id/courses error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * GET /api/eval/teachers/:id/publications
+ * Returns publications for a teacher
+ */
+router.get("/teachers/:id/publications", async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    
+    const sql = `
+      SELECT 
+        id,
+        title,
+        venue,
+        published_on,
+        external_id,
+        source,
+        created_at
+      FROM publications
+      WHERE teacher_id = $1
+      ORDER BY published_on DESC NULLS LAST
+      LIMIT 100
+    `;
+    
+    const { rows } = await pool.query(sql, [teacherId]);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /teachers/:id/publications error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * GET /api/eval/teachers/:id/pd-courses
+ * Returns professional development courses for a teacher
+ */
+router.get("/teachers/:id/pd-courses", async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    
+    const sql = `
+      SELECT 
+        id,
+        provider,
+        title,
+        hours,
+        completed_on,
+        external_id,
+        source,
+        created_at
+      FROM pd_courses
+      WHERE teacher_id = $1
+      ORDER BY completed_on DESC NULLS LAST
+      LIMIT 100
+    `;
+    
+    const { rows } = await pool.query(sql, [teacherId]);
+    res.json(rows);
+  } catch (err) {
+    console.error("GET /teachers/:id/pd-courses error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * GET /api/eval/teachers/:id/service
+ * Returns service contributions (committee work, community service)
+ * Note: This would require additional tables in production
+ */
+router.get("/teachers/:id/service", async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    
+    // Mock data for now - in production, you'd have service_activities table
+    res.json({
+      committees: [],
+      community: []
+    });
+  } catch (err) {
+    console.error("GET /teachers/:id/service error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * GET /api/eval/teachers/:id/education
+ * Returns education history
+ * Note: This would require additional tables in production
+ */
+router.get("/teachers/:id/education", async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    
+    // Mock data for now - in production, you'd have education_history table
+    res.json([]);
+  } catch (err) {
+    console.error("GET /teachers/:id/education error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
+/**
+ * GET /api/eval/teachers/:id/career
+ * Returns career timeline and awards
+ * Note: This would require additional tables in production
+ */
+router.get("/teachers/:id/career", async (req, res) => {
+  try {
+    const teacherId = req.params.id;
+    
+    // Mock data for now - in production, you'd have career_history and awards tables
+    res.json({
+      timeline: [],
+      awards: []
+    });
+  } catch (err) {
+    console.error("GET /teachers/:id/career error:", err);
+    res.status(500).json({ error: "internal_error" });
+  }
+});
+
 
 export default router;
