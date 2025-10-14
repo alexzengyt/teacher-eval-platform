@@ -226,7 +226,73 @@ app.get("/internal/sync/status", async (req, res) => {
   }
 });
 
+// ===== POST /webhooks/schoolday =====
+// Webhook receiver for Schoolday data change events
+app.post("/webhooks/schoolday", async (req, res) => {
+  const { event, timestamp, data } = req.body;
+  
+  console.log(`[webhook] Received Schoolday webhook: ${event} at ${timestamp}`);
+  console.log(`[webhook] Affected resources:`, data?.affectedResources);
+  
+  // Acknowledge receipt immediately
+  res.status(200).json({ 
+    status: "received",
+    message: "Webhook received, sync will be triggered"
+  });
+  
+  // Trigger sync asynchronously (don't wait for response)
+  setTimeout(async () => {
+    try {
+      console.log(`[webhook] Triggering automatic sync...`);
+      const resp = await fetch(`http://localhost:${process.env.PORT || 7002}/internal/sync/run`, {
+        method: "POST",
+      });
+      const result = await resp.json();
+      console.log(`[webhook] Sync completed:`, result.status);
+    } catch (err) {
+      console.error(`[webhook] Sync failed:`, err);
+    }
+  }, 100); // Small delay to ensure webhook response is sent first
+});
+
+// ===== POST /webhooks/subscribe =====
+// Subscribe to Schoolday webhooks on startup or on-demand
+app.post("/webhooks/subscribe", requireAdmin, async (req, res) => {
+  try {
+    const token = await getAccessToken();
+    const base = process.env.SD_BASE_URL || "http://mock-schoolday-service:7001";
+    const webhookUrl = process.env.WEBHOOK_URL || `http://data-integration-service:7002/webhooks/schoolday`;
+    
+    const resp = await fetch(`${base}/webhooks/subscribe`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: ["roster.updated"]
+      })
+    });
+    
+    if (!resp.ok) {
+      throw new Error(`Subscription failed: ${resp.status} ${await resp.text()}`);
+    }
+    
+    const result = await resp.json();
+    res.json({
+      status: "subscribed",
+      subscription: result.subscription,
+      message: "Successfully subscribed to Schoolday webhooks"
+    });
+  } catch (err) {
+    console.error("[webhook] Subscription error:", err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 const port = process.env.PORT || 7002;
 app.listen(port, () => {
   console.log(`[data-integration] listening on :${port}`);
+  console.log(`[data-integration] Webhook endpoint: http://localhost:${port}/webhooks/schoolday`);
 });
