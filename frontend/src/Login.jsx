@@ -259,7 +259,9 @@ export default function Login() {
             // Redirect to Schoolday SSO login
             // For demo, we'll use a specific demo user
             const demoUser = "peiyao@example.com"; // You can change this
-            window.location.href = `http://localhost:8080/api/auth/schoolday/login?demo_user=${demoUser}`;
+            // Use the same API base as configured in api.js
+            const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+            window.location.href = `${apiBase}/api/auth/schoolday/login?demo_user=${demoUser}`;
           }}
           style={{
             width: "100%",

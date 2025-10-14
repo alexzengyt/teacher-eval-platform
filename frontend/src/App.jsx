@@ -89,7 +89,8 @@ export default function App() {
           <button
             onClick={() => {
               clearToken();
-              location.assign("/login");
+              // Redirect to home and reload to show login page
+              location.assign("/");
             }}
             aria-label="Logout from application"
             style={{
