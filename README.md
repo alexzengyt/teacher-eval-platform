@@ -96,6 +96,26 @@ docker compose down
 - Containerization: Docker, Docker Compose
 - Architecture: Microservices (auth, evaluation, gateway, mock provider, data integration)
 
+## 🌐 部署
+
+### Railway 一键部署（推荐）
+
+1. 推送代码到 GitHub
+2. 访问 [Railway](https://railway.app)，使用 GitHub 登录
+3. New Project → Deploy from GitHub repo → 选择此仓库
+4. Railway 自动识别 `docker-compose.yml` 并部署所有服务
+5. 为 `gateway` 和 `frontend` 服务生成公开域名
+6. 在 `frontend` 服务添加环境变量：`VITE_API_BASE=https://your-gateway-domain.up.railway.app`
+
+### 公开演示
+
+🎯 **演示 URL**: _部署后填写_
+
+测试账号:
+- 管理员: `admin` / `admin123`
+- 评估者: `eval1` / `eval123`
+- 只读: `viewer` / `view123`
+
 ## Next Steps
 
 - [ ] Incremental sync & conflict handling
