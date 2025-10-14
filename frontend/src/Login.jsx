@@ -9,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState("pass123");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [ssoLoading, setSsoLoading] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -34,53 +35,87 @@ export default function Login() {
   return (
     <div style={{ 
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "20px"
+      padding: "20px",
+      position: "relative",
+      overflow: "hidden"
     }}>
+      {/* Animated background circles */}
+      <div style={{
+        position: "absolute",
+        top: "-10%",
+        left: "-10%",
+        width: "40%",
+        height: "40%",
+        background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)",
+        borderRadius: "50%",
+        animation: "float 20s ease-in-out infinite"
+      }} />
+      <div style={{
+        position: "absolute",
+        bottom: "-10%",
+        right: "-10%",
+        width: "50%",
+        height: "50%",
+        background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)",
+        borderRadius: "50%",
+        animation: "float 25s ease-in-out infinite reverse"
+      }} />
+
       <div style={{ 
-        maxWidth: "400px", 
+        maxWidth: "420px", 
         width: "100%",
-        background: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        borderRadius: "16px",
-        padding: "40px",
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        background: "rgba(255, 255, 255, 0.98)",
+        backdropFilter: "blur(20px)",
+        borderRadius: "24px",
+        padding: "clamp(24px, 5vw, 48px)",
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08)",
+        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+        position: "relative",
+        zIndex: 1,
+        animation: "fadeInUp 0.6s ease-out"
       }}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{
-            width: "64px",
-            height: "64px",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            borderRadius: "50%",
-            margin: "0 auto 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "24px"
-          }}>
+        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+          <div 
+            role="img"
+            aria-label="Teacher Evaluation Platform Logo"
+            style={{
+              width: "80px",
+              height: "80px",
+              background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+              borderRadius: "50%",
+              margin: "0 auto 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "36px",
+              boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)",
+              animation: "pulse 2s ease-in-out infinite"
+            }}>
             🎓
           </div>
           <h1 style={{ 
             margin: 0, 
-            fontSize: "28px", 
+            fontSize: "32px", 
             fontWeight: "700",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            backgroundClip: "text"
+            backgroundClip: "text",
+            letterSpacing: "-0.5px"
           }}>
             Teacher Evaluation
           </h1>
           <p style={{ 
-            margin: "8px 0 0", 
+            margin: "10px 0 0", 
             color: "#6b7280", 
-            fontSize: "16px" 
+            fontSize: "15px",
+            lineHeight: "1.6"
           }}>
-            Sign in to access the platform
+            Comprehensive faculty assessment platform
           </p>
         </div>
 
@@ -149,19 +184,20 @@ export default function Login() {
 
           <button 
             disabled={loading} 
-            type="submit" 
+            type="submit"
+            aria-label="Sign in with email and password"
             style={{ 
               width: "100%", 
-              padding: "12px 24px",
-              background: loading ? "#9ca3af" : "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+              padding: "14px 24px",
+              background: loading ? "#9ca3af" : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
               color: "white",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "12px",
               fontSize: "16px",
               fontWeight: "600",
               cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.3s ease",
+              boxShadow: loading ? "none" : "0 4px 12px rgba(99, 102, 241, 0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -169,13 +205,15 @@ export default function Login() {
             }}
             onMouseOver={(e) => {
               if (!loading) {
-                e.target.style.transform = "translateY(-1px)";
-                e.target.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1)";
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 8px 20px rgba(99, 102, 241, 0.4)";
               }
             }}
             onMouseOut={(e) => {
-              e.target.style.transform = "translateY(0)";
-              e.target.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1)";
+              if (!loading) {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.3)";
+              }
             }}
           >
             {loading ? (
@@ -192,7 +230,8 @@ export default function Login() {
               </>
             ) : (
               <>
-                🔐 Sign In
+                <span style={{ fontSize: "18px" }}>🔐</span>
+                Sign In with Email
               </>
             )}
           </button>
@@ -213,7 +252,10 @@ export default function Login() {
         {/* Schoolday SSO Button */}
         <button
           type="button"
+          disabled={ssoLoading}
+          aria-label="Sign in with Schoolday SSO"
           onClick={() => {
+            setSsoLoading(true);
             // Redirect to Schoolday SSO login
             // For demo, we'll use a specific demo user
             const demoUser = "peiyao@example.com"; // You can change this
@@ -221,35 +263,55 @@ export default function Login() {
           }}
           style={{
             width: "100%",
-            padding: "12px 24px",
-            background: "white",
-            color: "#1f2937",
+            padding: "14px 24px",
+            background: ssoLoading ? "#f3f4f6" : "white",
+            color: ssoLoading ? "#9ca3af" : "#1f2937",
             border: "2px solid #e5e7eb",
-            borderRadius: "8px",
+            borderRadius: "12px",
             fontSize: "16px",
             fontWeight: "600",
-            cursor: "pointer",
-            transition: "all 0.2s ease",
+            cursor: ssoLoading ? "not-allowed" : "pointer",
+            transition: "all 0.3s ease",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: "12px"
           }}
           onMouseOver={(e) => {
-            e.target.style.borderColor = "#6366f1";
-            e.target.style.background = "#f8fafc";
-            e.target.style.transform = "translateY(-1px)";
-            e.target.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1)";
+            if (!ssoLoading) {
+              e.target.style.borderColor = "#6366f1";
+              e.target.style.background = "#faf5ff";
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.15)";
+            }
           }}
           onMouseOut={(e) => {
-            e.target.style.borderColor = "#e5e7eb";
-            e.target.style.background = "white";
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "none";
+            if (!ssoLoading) {
+              e.target.style.borderColor = "#e5e7eb";
+              e.target.style.background = "white";
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "none";
+            }
           }}
         >
-          <span style={{ fontSize: "20px" }}>🏫</span>
-          Sign in with Schoolday
+          {ssoLoading ? (
+            <>
+              <div style={{
+                width: "20px",
+                height: "20px",
+                border: "2px solid #e5e7eb",
+                borderTop: "2px solid #6366f1",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite"
+              }} />
+              Redirecting to Schoolday...
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: "24px" }}>🏫</span>
+              Sign in with Schoolday
+            </>
+          )}
         </button>
 
         {err && (
@@ -294,6 +356,34 @@ export default function Login() {
             @keyframes spin {
               0% { transform: rotate(0deg); }
               100% { transform: rotate(360deg); }
+            }
+            
+            @keyframes float {
+              0%, 100% { transform: translate(0, 0) scale(1); }
+              33% { transform: translate(30px, -30px) scale(1.05); }
+              66% { transform: translate(-20px, 20px) scale(0.95); }
+            }
+            
+            @keyframes fadeInUp {
+              from {
+                opacity: 0;
+                transform: translateY(30px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            
+            @keyframes pulse {
+              0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+              }
+              50% { 
+                transform: scale(1.05);
+                box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.5);
+              }
             }
           `}
         </style>

@@ -446,48 +446,82 @@ export default function TeachersTable() {
           <button 
             onClick={loadDashboard} 
             disabled={loadingDashboard}
+            aria-label="Open analytics dashboard"
             style={{
-              background: loadingDashboard ? "#9ca3af" : "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+              background: loadingDashboard ? "#9ca3af" : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
               color: "white",
               border: "none",
-              padding: "8px 16px",
-              borderRadius: "6px",
+              padding: "10px 18px",
+              borderRadius: "8px",
               fontSize: "14px",
-              fontWeight: "500",
+              fontWeight: "600",
               cursor: loadingDashboard ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease"
+              boxShadow: loadingDashboard ? "none" : "0 2px 8px rgba(99, 102, 241, 0.25)",
+              transition: "all 0.3s ease"
+            }}
+            onMouseOver={(e) => {
+              if (!loadingDashboard) {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.35)";
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!loadingDashboard) {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 2px 8px rgba(99, 102, 241, 0.25)";
+              }
             }}
           >
             {loadingDashboard ? "Loading..." : "📊 Analytics Dashboard"}
           </button>
           <button 
             onClick={downloadCsv}
+            aria-label="Download teacher data as CSV file"
             style={{
               background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
               color: "white",
               border: "none",
-              padding: "8px 16px",
-              borderRadius: "6px",
+              padding: "10px 18px",
+              borderRadius: "8px",
               fontSize: "14px",
-              fontWeight: "500",
+              fontWeight: "600",
               cursor: "pointer",
-              transition: "all 0.2s ease"
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
+              transition: "all 0.3s ease"
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.35)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 2px 8px rgba(16, 185, 129, 0.25)";
             }}
           >
             📄 Download CSV
           </button>
           <button 
             onClick={downloadPdf}
+            aria-label="Download teacher data as PDF file"
             style={{
               background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
               color: "white",
               border: "none",
-              padding: "8px 16px",
-              borderRadius: "6px",
+              padding: "10px 18px",
+              borderRadius: "8px",
               fontSize: "14px",
-              fontWeight: "500",
+              fontWeight: "600",
               cursor: "pointer",
-              transition: "all 0.2s ease"
+              boxShadow: "0 2px 8px rgba(245, 158, 11, 0.25)",
+              transition: "all 0.3s ease"
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.35)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 2px 8px rgba(245, 158, 11, 0.25)";
             }}
           >
             📋 Download PDF
@@ -621,6 +655,7 @@ export default function TeachersTable() {
             <div style={{ textAlign: "center", marginTop: "20px" }}>
               <button
                 onClick={() => setShowDashboard(false)}
+                aria-label="Close analytics dashboard"
                 style={{
                   background: "#6b7280",
                   color: "white",
@@ -667,24 +702,35 @@ export default function TeachersTable() {
               onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
             />
             <button 
-              type="submit" 
+              type="submit"
+              aria-label="Search teachers"
               style={{ 
                 padding: "10px 20px",
-                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
                 fontSize: "14px",
-                fontWeight: "500",
+                fontWeight: "600",
                 cursor: "pointer",
-                transition: "all 0.2s ease"
+                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.25)",
+                transition: "all 0.3s ease"
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.35)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "0 2px 8px rgba(99, 102, 241, 0.25)";
               }}
             >
               Search
             </button>
             <button 
               type="button" 
-              onClick={() => { setPendingQ(""); setQ(""); setPage(1); }} 
+              onClick={() => { setPendingQ(""); setQ(""); setPage(1); }}
+              aria-label="Clear search"
               style={{ 
                 padding: "10px 16px",
                 background: "#6b7280",
@@ -692,9 +738,17 @@ export default function TeachersTable() {
                 border: "none",
                 borderRadius: "8px",
                 fontSize: "14px",
-                fontWeight: "500",
+                fontWeight: "600",
                 cursor: "pointer",
-                transition: "all 0.2s ease"
+                transition: "all 0.3s ease"
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = "none";
               }}
             >
               Clear
@@ -811,7 +865,8 @@ export default function TeachersTable() {
           />
           <button 
             type="submit" 
-            disabled={adding} 
+            disabled={adding}
+            aria-label="Add new teacher"
             style={{ 
               padding: "10px 20px",
               background: adding ? "#9ca3af" : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -860,6 +915,7 @@ export default function TeachersTable() {
           <button 
             onClick={gotoPrev} 
             disabled={page <= 1}
+            aria-label="Go to previous page"
             style={{
               padding: "8px 16px",
               background: page <= 1 ? "#f3f4f6" : "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
@@ -887,6 +943,7 @@ export default function TeachersTable() {
           <button 
             onClick={gotoNext} 
             disabled={page >= maxPage}
+            aria-label="Go to next page"
             style={{
               padding: "8px 16px",
               background: page >= maxPage ? "#f3f4f6" : "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
@@ -975,18 +1032,22 @@ export default function TeachersTable() {
                       />
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "50%",
-                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "white",
-                          fontSize: "14px",
-                          fontWeight: "600"
-                        }}>
+                        <div 
+                          role="img"
+                          aria-label={`Avatar for ${((t.name && t.name.trim()) || `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim())}`}
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontSize: "16px",
+                            fontWeight: "700",
+                            boxShadow: "0 2px 8px rgba(99, 102, 241, 0.3)"
+                          }}>
                           {((t.name && t.name.trim()) || `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim()).charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -1040,6 +1101,7 @@ export default function TeachersTable() {
                         <button
                           onClick={saveEdit}
                           disabled={saving}
+                          aria-label="Save teacher information"
                           style={{ 
                             padding: "6px 12px",
                             background: saving ? "#9ca3af" : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -1057,6 +1119,7 @@ export default function TeachersTable() {
                         <button
                           onClick={cancelEdit}
                           disabled={saving}
+                          aria-label="Cancel editing"
                           style={{ 
                             padding: "6px 12px",
                             background: "#6b7280",
@@ -1076,16 +1139,26 @@ export default function TeachersTable() {
                       <div style={{ display: "flex", gap: "8px" }}>
                         <button
                           onClick={() => beginEdit(t)}
+                          aria-label={`Edit teacher ${(t.name && t.name.trim()) || `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim()}`}
                           style={{ 
                             padding: "6px 12px",
-                            background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
                             color: "white",
                             border: "none",
                             borderRadius: "6px",
                             fontSize: "12px",
-                            fontWeight: "500",
+                            fontWeight: "600",
                             cursor: "pointer",
-                            transition: "all 0.2s ease"
+                            boxShadow: "0 1px 3px rgba(99, 102, 241, 0.25)",
+                            transition: "all 0.3s ease"
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.transform = "translateY(-1px)";
+                            e.target.style.boxShadow = "0 2px 6px rgba(99, 102, 241, 0.35)";
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.transform = "translateY(0)";
+                            e.target.style.boxShadow = "0 1px 3px rgba(99, 102, 241, 0.25)";
                           }}
                         >
                           ✏️ Edit
@@ -1093,6 +1166,7 @@ export default function TeachersTable() {
                         <button
                           onClick={() => handleDelete(t.id)}
                           disabled={deletingId === t.id}
+                          aria-label={`Delete teacher ${(t.name && t.name.trim()) || `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim()}`}
                           style={{ 
                             padding: "6px 12px",
                             background: deletingId === t.id ? "#9ca3af" : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
@@ -1115,6 +1189,7 @@ export default function TeachersTable() {
                   <td style={{...td, padding: "16px 24px"}}>
                     <button
                       onClick={() => openOverview(t)}
+                      aria-label={`View evaluation overview for ${(t.name && t.name.trim()) || `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim()}`}
                       style={{
                         padding: "8px 16px",
                         background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
