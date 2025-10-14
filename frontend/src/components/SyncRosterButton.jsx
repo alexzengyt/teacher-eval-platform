@@ -52,16 +52,73 @@ export default function SyncRosterButton() {
   }
 
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
       <button
         onClick={onClick}
         disabled={loading}
-        style={{ padding: "6px 10px" }}
+        style={{ 
+          padding: "10px 20px",
+          background: loading ? "#9ca3af" : "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          fontSize: "14px",
+          fontWeight: "600",
+          cursor: loading ? "not-allowed" : "pointer",
+          transition: "all 0.2s ease",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}
+        onMouseOver={(e) => {
+          if (!loading) {
+            e.target.style.transform = "translateY(-1px)";
+            e.target.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.15)";
+          }
+        }}
+        onMouseOut={(e) => {
+          e.target.style.transform = "translateY(0)";
+          e.target.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
+        }}
         title="Pull roster from Schoolday (mock) and upsert into DB"
       >
-        {loading ? "Syncing..." : "Sync Roster"}
+        {loading ? (
+          <>
+            <div style={{
+              width: "16px",
+              height: "16px",
+              border: "2px solid rgba(255, 255, 255, 0.3)",
+              borderTop: "2px solid white",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite"
+            }} />
+            Syncing...
+          </>
+        ) : (
+          <>
+            🔄 Sync Roster
+          </>
+        )}
       </button>
-      <small style={{ opacity: 0.7 }}>{statusText}</small>
-    </span>
+      <div style={{ 
+        fontSize: "12px", 
+        color: "#6b7280",
+        background: "#f3f4f6",
+        padding: "4px 8px",
+        borderRadius: "4px",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+      }}>
+        {statusText}
+      </div>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+    </div>
   );
 }

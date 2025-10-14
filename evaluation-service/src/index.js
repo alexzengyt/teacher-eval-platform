@@ -10,6 +10,7 @@ import draftRoutes from "./routes/draft.js";
 import submitRoutes from "./routes/submit.js";
 import publishRoutes from "./routes/publish.js";
 import reportsRouter from "./routes/reports.js";
+import analyticsRouter from "./routes/analytics.js";
 
 // Load .env variables
 dotenv.config();
@@ -44,6 +45,7 @@ app.use("/api/eval/secure", requireAuth, draftRoutes);
 app.use("/api/eval/secure", requireAuth, submitRoutes); 
 app.use("/api/eval/secure", requireAuth, publishRoutes);
 app.use("/api/eval/secure", requireAuth, reportsRouter);
+app.use("/api/eval/analytics", requireAuth, analyticsRouter);
 
 
 
