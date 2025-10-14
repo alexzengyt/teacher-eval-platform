@@ -1,0 +1,96 @@
+databases:
+  # PostgreSQL Database (Render Native)
+  - name: teacher-eval-db
+    databaseName: teacher_eval
+    user: te_user
+
+services:
+
+  # Auth Service
+  - type: web
+    name: auth-service
+    env: docker
+    dockerfilePath: ./auth-service/Dockerfile
+    dockerContext: ./auth-service
+    envVars:
+      - key: AUTH_JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 4001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: teacher-eval-db
+          property: connectionString
+
+  # Evaluation Service
+  - type: web
+    name: evaluation-service
+    env: docker
+    dockerfilePath: ./evaluation-service/Dockerfile
+    dockerContext: ./evaluation-service
+    envVars:
+      - key: AUTH_JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 3002
+      - key: DATABASE_URL
+        fromDatabase:
+          name: teacher-eval-db
+          property: connectionString
+
+  # Mock Schoolday Service
+  - type: web
+    name: mock-schoolday-service
+    env: docker
+    dockerfilePath: ./mock-schoolday-service/Dockerfile
+    dockerContext: ./mock-schoolday-service
+    envVars:
+      - key: PORT
+        value: 7001
+      - key: SD_EXPECTED_CLIENT_ID
+        value: dev-client
+      - key: SD_EXPECTED_CLIENT_SECRET
+        value: dev-secret
+
+  # Data Integration Service
+  - type: web
+    name: data-integration-service
+    env: docker
+    dockerfilePath: ./data-integration-service/Dockerfile
+    dockerContext: ./data-integration-service
+    envVars:
+      - key: PORT
+        value: 7002
+      - key: DATABASE_URL
+        fromDatabase:
+          name: teacher-eval-db
+          property: connectionString
+      - key: SD_BASE_URL
+        value: http://mock-schoolday-service:7001
+      - key: SD_CLIENT_ID
+        value: dev-client
+      - key: SD_CLIENT_SECRET
+        value: dev-secret
+      - key: AUTH_JWT_SECRET
+        sync: false
+
+  # Gateway (Nginx)
+  - type: web
+    name: gateway
+    env: docker
+    dockerfilePath: ./gateway/Dockerfile
+    dockerContext: ./gateway
+    envVars:
+      - key: PORT
+        value: 8080
+
+  # Frontend
+  - type: web
+    name: frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: VITE_API_BASE
+        value: https://gateway.onrender.com
+
