@@ -517,6 +517,39 @@
           Loading certifications...
         </div>
       </div>
+
+      <div class="data-table">
+        <h3>Documents & Files</h3>
+        <!-- Upload Section -->
+        <div id="documentUploadSection" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px; border: 2px dashed #cbd5e1;">
+          <h4 style="margin: 0 0 12px 0; font-size: 16px; color: #1f2937;">Upload Document</h4>
+          <form id="documentUploadForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; gap: 12px;">
+              <input type="file" id="documentFile" name="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" required 
+                style="flex: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+              <select id="documentType" name="document_type" required 
+                style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+                <option value="cv">CV / Resume</option>
+                <option value="certificate">Certificate</option>
+                <option value="evidence">Evidence</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <input type="text" id="documentDescription" name="description" placeholder="Description (optional)" 
+              style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <button type="submit" 
+              style="padding: 10px 20px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              Upload Document
+            </button>
+          </form>
+        </div>
+
+        <!-- Documents List -->
+        <div id="documentsTable" class="loading">
+          <div class="spinner"></div>
+          Loading documents...
+        </div>
+      </div>
     </div>
 
     <!-- Tab: Career -->

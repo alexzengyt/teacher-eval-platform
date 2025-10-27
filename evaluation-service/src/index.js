@@ -15,6 +15,7 @@ import serviceRouter from "./routes/service.js";
 import educationRouter from "./routes/education.js";
 import careerRouter from "./routes/career.js";
 import grantsRouter from "./routes/grants.js";
+import documentsRouter from "./routes/documents.js";
 
 // Load .env variables
 dotenv.config();
@@ -23,7 +24,10 @@ const app = express();
 const port = 3002;
 
 
-app.use(express.json())
+// DO NOT use global json parser for multipart/form-data compatibility
+// Instead, add json parser only where needed (via optional middleware)
+const jsonMiddleware = express.json({ limit: '50mb' });
+
 app.use(
   "/demo",
   express.static("frontend", {
@@ -42,25 +46,26 @@ app.use(
   })
 );
 
+// Register documents FIRST (before JSON parser) to handle multipart properly
+console.log("📝 Registering documents routes...");
+app.use("/api/eval/documents", documentsRouter);
 
 app.use("/api/eval", readOnlyRoutes);
-app.use("/api/eval", requireAuth, teachersRouter);
-app.use("/api/eval/secure", requireAuth, draftRoutes);  
-app.use("/api/eval/secure", requireAuth, submitRoutes); 
-app.use("/api/eval/secure", requireAuth, publishRoutes);
-app.use("/api/eval/secure", requireAuth, reportsRouter);
-app.use("/api/eval/analytics", requireAuth, analyticsRouter);
+app.use("/api/eval", requireAuth, jsonMiddleware, teachersRouter);
+app.use("/api/eval/secure", requireAuth, jsonMiddleware, draftRoutes);  
+app.use("/api/eval/secure", requireAuth, jsonMiddleware, submitRoutes); 
+app.use("/api/eval/secure", requireAuth, jsonMiddleware, publishRoutes);
+app.use("/api/eval/secure", requireAuth, jsonMiddleware, reportsRouter);
+app.use("/api/eval/analytics", requireAuth, jsonMiddleware, analyticsRouter);
 // New routes for Multi-Tab Evaluation Interface
 console.log("📝 Registering service routes...");
-app.use("/api/eval", requireAuth, serviceRouter);
+app.use("/api/eval", requireAuth, jsonMiddleware, serviceRouter);
 console.log("📝 Registering education routes...");
-app.use("/api/eval", requireAuth, educationRouter);
+app.use("/api/eval", requireAuth, jsonMiddleware, educationRouter);
 console.log("📝 Registering career routes...");
-app.use("/api/eval", requireAuth, careerRouter);
+app.use("/api/eval", requireAuth, jsonMiddleware, careerRouter);
 console.log("📝 Registering grants routes...");
-app.use("/api/eval", requireAuth, grantsRouter);
-
-
+app.use("/api/eval", requireAuth, jsonMiddleware, grantsRouter);
 
 // Route to check DB connection
 app.get("/health/db", async (req, res) => {

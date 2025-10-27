@@ -110,13 +110,19 @@ CREATE TABLE IF NOT EXISTS pd_courses (
 
 -- Files/CVs/Certificates (stored elsewhere; keep metadata here)
 CREATE TABLE IF NOT EXISTS documents (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_type    TEXT NOT NULL,                  -- 'teacher' | 'evaluation'
-  owner_id      UUID NOT NULL,
-  kind          TEXT NOT NULL,                  -- 'cv' | 'certificate' | 'evidence'
-  url           TEXT NOT NULL,                  -- S3/GCS/etc.
-  metadata      JSONB DEFAULT '{}'::jsonb,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id        UUID REFERENCES teachers(id) ON DELETE CASCADE,
+  filename          TEXT NOT NULL,                  -- Storage filename
+  original_filename TEXT NOT NULL,                  -- Original filename
+  file_path         TEXT NOT NULL,                  -- Full path to file
+  file_size         BIGINT,                         -- File size in bytes
+  mime_type         TEXT,                           -- MIME type
+  document_type     TEXT,                           -- 'cv' | 'certificate' | 'evidence' | 'other'
+  description       TEXT,                           -- Optional description
+  uploaded_by       UUID,                           -- User who uploaded
+  uploaded_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- Staging (landing area for Schoolday/OneRoster) ----------

@@ -1189,6 +1189,9 @@
         renderEmptyState('certificationsTable', '📜', 'No certifications or PD courses recorded');
       }
 
+      // Load documents
+      await loadDocuments();
+
     } catch (err) {
       console.error("loadProfessionalData error:", err);
       renderEmptyState('educationTable', '🎓', 'Failed to load education history');
@@ -1392,6 +1395,211 @@
       </table>
     `;
     container.innerHTML = html;
+  }
+
+  // ========== Document Management ==========
+  async function loadDocuments() {
+    try {
+      const response = await fetch(`/api/eval/documents/list?teacher_id=${teacherId}`, { headers });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const documents = await response.json();
+      renderDocumentsTable(documents);
+
+      // Setup upload form handler
+      setupDocumentUpload();
+    } catch (err) {
+      console.error("loadDocuments error:", err);
+      const container = document.getElementById('documentsTable');
+      if (container) {
+        renderEmptyState('documentsTable', '📄', 'Failed to load documents');
+      }
+      setupDocumentUpload(); // Setup upload handler even if load fails
+    }
+  }
+
+  function setupDocumentUpload() {
+    const form = document.getElementById('documentUploadForm');
+    if (!form) return;
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('documentFile');
+      const typeSelect = document.getElementById('documentType');
+      const descInput = document.getElementById('documentDescription');
+
+      if (!fileInput.files[0]) {
+        alert('Please select a file to upload');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('teacher_id', teacherId);
+      formData.append('document_type', typeSelect.value);
+      if (descInput.value) {
+        formData.append('description', descInput.value);
+      }
+
+      try {
+        // Don't set Content-Type for multipart - browser will set it automatically
+        const uploadHeaders = { ...headers };
+        delete uploadHeaders['Content-Type'];
+        
+        const response = await fetch('/api/eval/documents/upload', {
+          method: 'POST',
+          headers: uploadHeaders,
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        console.log('Upload successful:', result);
+        
+        // Reset form
+        form.reset();
+        
+        // Reload documents
+        await loadDocuments();
+
+        // Show success message
+        alert('Document uploaded successfully!');
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert('Failed to upload document: ' + err.message);
+      }
+    };
+  }
+
+  function renderDocumentsTable(documents) {
+    const container = document.getElementById('documentsTable');
+    
+    if (!documents || documents.length === 0) {
+      renderEmptyState('documentsTable', '📄', 'No documents uploaded yet');
+      return;
+    }
+
+    container.classList.remove('loading');
+
+    // Store documents data for event delegation
+    if (!window.documentsData) {
+      window.documentsData = {};
+    }
+
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Type</th>
+            <th>Size</th>
+            <th>Uploaded</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${documents.map(doc => {
+            window.documentsData[doc.id] = doc;
+            return `
+            <tr>
+              <td><strong>📄 ${doc.original_filename}</strong></td>
+              <td><span style="background: #e0e7ff; color: #6366f1; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;">${doc.document_type || 'other'}</span></td>
+              <td>${formatFileSize(doc.file_size)}</td>
+              <td>${formatDate(doc.uploaded_at)}</td>
+              <td>
+                <button class="download-doc-btn" data-doc-id="${doc.id}" 
+                  style="padding: 4px 12px; background: #6366f1; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; margin-right: 8px;">
+                  Download
+                </button>
+                <button class="delete-doc-btn" data-doc-id="${doc.id}" 
+                  style="padding: 4px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    container.innerHTML = html;
+
+    // Setup event delegation for download and delete buttons (only once)
+    if (!container.hasDocumentListeners) {
+      container.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('download-doc-btn')) {
+          e.preventDefault();
+          const docId = e.target.getAttribute('data-doc-id');
+          await downloadDocument(docId);
+        } else if (e.target.classList.contains('delete-doc-btn')) {
+          e.preventDefault();
+          const docId = e.target.getAttribute('data-doc-id');
+          await deleteDocument(docId);
+        }
+      });
+      container.hasDocumentListeners = true; // Mark as having listeners
+    }
+  }
+
+  // Document action functions
+  async function downloadDocument(docId) {
+    try {
+      const response = await fetch(`/api/eval/documents/${docId}/download`, { headers });
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get filename from headers or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `document-${docId}.pdf`;
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download document');
+    }
+  }
+
+  async function deleteDocument(docId) {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    try {
+      const response = await fetch(`/api/eval/documents/${docId}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (!response.ok) throw new Error('Delete failed');
+
+      // Reload documents
+      await loadDocuments();
+      alert('Document deleted successfully');
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete document');
+    }
+  }
+
+  function formatFileSize(bytes) {
+    if (!bytes) return 'N/A';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
   // ========== Utility: Empty State ==========

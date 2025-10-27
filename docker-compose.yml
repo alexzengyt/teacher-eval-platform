@@ -31,6 +31,8 @@ services:
     env_file: ./evaluation-service/.env
     environment:
       - AUTH_JWT_SECRET=${AUTH_JWT_SECRET}
+    volumes:
+      - ./evaluation-service/uploads:/app/uploads
 
   frontend:
     build: ./frontend
