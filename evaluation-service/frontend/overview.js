@@ -143,6 +143,9 @@
       // Load peer comparison
       await loadPeerComparison();
 
+      // Load predictions
+      await loadPredictions();
+
     } catch (err) {
       console.error("loadOverview error:", err);
       document.getElementById("name").textContent = "Error loading data";
@@ -1727,6 +1730,164 @@
         `).join('')}
       </div>
     `;
+  }
+
+  // ========== Predictive Analytics ==========
+  async function loadPredictions() {
+    try {
+      const container = document.getElementById('predictionChart');
+      if (!container) return;
+
+      const response = await fetch(`/api/eval/teachers/${teacherId}/predictions`, { headers });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      if (data.message) {
+        container.classList.remove('loading');
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #6b7280;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🔮</div>
+            <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Predictions Coming Soon</div>
+            <div style="font-size: 14px;">${data.message}</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.classList.remove('loading');
+      container.innerHTML = '<canvas id="predictionChartCanvas"></canvas>';
+
+      // Prepare data for chart
+      const labels = ['Teaching', 'Research', 'Service', 'Professional Dev.'];
+      const baseScores = [
+        data.baseForecasts.teaching,
+        data.baseForecasts.research,
+        data.baseForecasts.service,
+        data.baseForecasts.professional_development
+      ];
+      const forecastScores = [
+        data.forecasts.teaching,
+        data.forecasts.research,
+        data.forecasts.service,
+        data.forecasts.professional_development
+      ];
+
+      const ctx = document.getElementById('predictionChartCanvas').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Without PD Courses',
+              data: baseScores,
+              backgroundColor: 'rgba(156, 163, 175, 0.8)',
+              borderColor: 'rgba(156, 163, 175, 1)',
+              borderWidth: 2,
+              borderRadius: 8
+            },
+            {
+              label: 'With PD Courses',
+              data: forecastScores,
+              backgroundColor: 'rgba(34, 197, 94, 0.8)',
+              borderColor: 'rgba(34, 197, 94, 1)',
+              borderWidth: 2,
+              borderRadius: 8
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                padding: 15,
+                font: { size: 13, weight: '600' },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 }
+            },
+            annotation: {
+              annotations: {
+                improvement: {
+                  type: 'box',
+                  yMin: data.baseOverall,
+                  yMax: data.forecastOverall,
+                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                  borderColor: 'rgba(34, 197, 94, 1)',
+                  borderWidth: 2
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              min: 2.0,
+              max: 5,
+              ticks: { 
+                stepSize: 0.5,
+                font: { size: 12 }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 12, weight: '600' }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+
+      // Add summary text below chart
+      const summaryDiv = document.createElement('div');
+      summaryDiv.style.cssText = 'padding: 16px; background: #f9fafb; border-radius: 8px; margin-top: 16px; text-align: center;';
+      summaryDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-around; margin-bottom: 8px;">
+          <div>
+            <div style="font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Base Score</div>
+            <div style="font-size: 24px; font-weight: 700; color: #6b7280;">${data.baseOverall.toFixed(2)}</div>
+          </div>
+          <div style="border-left: 1px solid #e5e7eb; padding-left: 24px;">
+            <div style="font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase;">With PD</div>
+            <div style="font-size: 24px; font-weight: 700; color: #10b981;">${data.forecastOverall.toFixed(2)}</div>
+          </div>
+          <div style="border-left: 1px solid #e5e7eb; padding-left: 24px;">
+            <div style="font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Improvement</div>
+            <div style="font-size: 24px; font-weight: 700; color: #059669;">+${data.improvement.toFixed(2)}</div>
+          </div>
+        </div>
+      `;
+      container.appendChild(summaryDiv);
+
+    } catch (err) {
+      console.error("loadPredictions error:", err);
+      const container = document.getElementById('predictionChart');
+      if (container) {
+        container.classList.remove('loading');
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #6b7280;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🔮</div>
+            <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Unable to Load Predictions</div>
+            <div style="font-size: 14px;">Failed to generate performance forecast</div>
+          </div>
+        `;
+      }
+    }
   }
 
   // ========== Initialize ==========

@@ -17,6 +17,7 @@ import careerRouter from "./routes/career.js";
 import grantsRouter from "./routes/grants.js";
 import documentsRouter from "./routes/documents.js";
 import recommendationsRouter from "./routes/recommendations.js";
+import predictionsRouter from "./routes/predictions.js";
 
 // Load .env variables
 dotenv.config();
@@ -69,6 +70,8 @@ console.log("📝 Registering grants routes...");
 app.use("/api/eval", requireAuth, jsonMiddleware, grantsRouter);
 console.log("📝 Registering recommendations routes...");
 app.use("/api/eval", requireAuth, jsonMiddleware, recommendationsRouter);
+console.log("📝 Registering predictions routes...");
+app.use("/api/eval", requireAuth, jsonMiddleware, predictionsRouter);
 
 // Route to check DB connection
 app.get("/health/db", async (req, res) => {
