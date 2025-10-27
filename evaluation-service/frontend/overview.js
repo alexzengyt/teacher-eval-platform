@@ -83,9 +83,6 @@
     loadedTabs.add(tabName);
 
     switch(tabName) {
-      case 'teaching':
-        loadTeachingData();
-        break;
       case 'research':
         loadResearchData();
         break;
@@ -137,11 +134,8 @@
       const r = data.evaluation?.radar || {};
       renderRadarChart(r);
 
-      // Time series chart
-      await loadTimeSeriesChart();
-
-      // Peer comparison
-      await loadPeerComparison();
+      // Load teaching data (courses)
+      await loadTeachingData();
 
     } catch (err) {
       console.error("loadOverview error:", err);
@@ -530,15 +524,18 @@
       let courses = [];
       try {
         const coursesResponse = await fetch(`/api/eval/teachers/${teacherId}/courses`, { headers });
+        console.log("📚 Courses response status:", coursesResponse.status);
         if (coursesResponse.ok) {
           courses = await coursesResponse.json();
+          console.log("📚 Courses data:", courses);
         }
       } catch (err) {
-        console.log("Could not load courses from API, using mock data");
+        console.log("Could not load courses from API, using mock data", err);
       }
 
       // If no courses, use mock data
       if (!courses || courses.length === 0) {
+        console.log("⚠️ No courses, using mock data");
         courses = [
           { period: '2025 Spring', code: 'ECON302', title: 'Business Management', student_count: 45, avg_rating: 4.7 },
           { period: '2024 Fall', code: 'HIST217', title: 'Modern History', student_count: 38, avg_rating: 4.6 },
@@ -548,12 +545,15 @@
         ];
       }
       
+      console.log("📚 About to render courses table with", courses.length, "courses");
       renderCoursesTable(courses);
 
       // Render student evaluation chart (mock data for now)
+      console.log("📊 About to render student eval chart");
       renderStudentEvalChart();
+      console.log("✅ Teaching data loaded successfully");
     } catch (err) {
-      console.error("loadTeachingData error:", err);
+      console.error("❌ loadTeachingData error:", err);
       renderEmptyState('coursesTable', '📚', 'Failed to load teaching data');
     }
   }
@@ -565,6 +565,9 @@
       renderEmptyState('coursesTable', '📚', 'No courses taught yet');
       return;
     }
+
+    // Remove loading class
+    container.classList.remove('loading');
 
     const html = `
       <table>
@@ -584,7 +587,7 @@
               <td><strong>${course.code || 'N/A'}</strong></td>
               <td>${course.title || 'Untitled'}</td>
               <td>${course.student_count || 0}</td>
-              <td><strong style="color: #6366f1;">${course.avg_rating ? course.avg_rating.toFixed(1) : 'N/A'}</strong></td>
+              <td><strong style="color: #6366f1;">${course.avg_rating ? parseFloat(course.avg_rating).toFixed(1) : 'N/A'}</strong></td>
             </tr>
           `).join('')}
         </tbody>
@@ -594,45 +597,27 @@
   }
 
   function renderStudentEvalChart() {
-    const ctx = document.getElementById("studentEvalChart").getContext("2d");
+    const container = document.getElementById("studentEvalChart");
+    if (!container) return;
     
-    // Mock data by course - replace with real API call
+    // Hide chart and show message - historical trend data not available yet
+    const parent = container.parentElement;
+    parent.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #6b7280;">
+        <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Historical Trend Data</div>
+        <div style="font-size: 14px;">Multi-semester evaluation trends will be available with more historical data</div>
+      </div>
+    `;
+    return;
+    
+    // Original chart code (disabled for now - requires historical data)
+    const ctx = container.getContext("2d");
     new Chart(ctx, {
       type: "line",
       data: {
         labels: ["2023 Fall", "2024 Spring", "2024 Fall", "2025 Spring"],
-        datasets: [
-          {
-            label: "ECON302: Business Management",
-            data: [4.5, 4.6, 4.5, 4.7],
-            backgroundColor: "rgba(99, 102, 241, 0.1)",
-            borderColor: "rgba(99, 102, 241, 1)",
-            borderWidth: 3,
-            pointRadius: 5,
-            pointBackgroundColor: "rgba(99, 102, 241, 1)",
-            tension: 0.4,
-          },
-          {
-            label: "HIST217: Modern History",
-            data: [4.7, 4.8, 4.6, 4.8],
-            backgroundColor: "rgba(16, 185, 129, 0.1)",
-            borderColor: "rgba(16, 185, 129, 1)",
-            borderWidth: 3,
-            pointRadius: 5,
-            pointBackgroundColor: "rgba(16, 185, 129, 1)",
-            tension: 0.4,
-          },
-          {
-            label: "STAT312: Statistical Methods",
-            data: [4.6, 4.8, 4.7, 4.9],
-            backgroundColor: "rgba(245, 158, 11, 0.1)",
-            borderColor: "rgba(245, 158, 11, 1)",
-            borderWidth: 3,
-            pointRadius: 5,
-            pointBackgroundColor: "rgba(245, 158, 11, 1)",
-            tension: 0.4,
-          }
-        ]
+        datasets: []
       },
       options: {
         responsive: true,
@@ -702,6 +687,9 @@
       return;
     }
 
+    // Remove loading class
+    container.classList.remove('loading');
+
     const html = `
       <table>
         <thead>
@@ -734,6 +722,9 @@
       renderEmptyState('grantsTable', '💰', 'No grant funding data available');
       return;
     }
+
+    // Remove loading class
+    container.classList.remove('loading');
 
     const html = `
       <table>
@@ -830,6 +821,9 @@
       return;
     }
 
+    // Remove loading class
+    container.classList.remove('loading');
+
     const html = `
       <table>
         <thead>
@@ -862,6 +856,9 @@
       renderEmptyState('communityTable', '🌍', 'No community contributions recorded');
       return;
     }
+
+    // Remove loading class
+    container.classList.remove('loading');
 
     const html = `
       <table>
@@ -933,6 +930,9 @@
       return;
     }
 
+    // Remove loading class
+    container.classList.remove('loading');
+
     const html = `
       <table>
         <thead>
@@ -965,6 +965,9 @@
       renderEmptyState('certificationsTable', '📜', 'No certifications or PD courses recorded');
       return;
     }
+
+    // Remove loading class
+    container.classList.remove('loading');
 
     const html = `
       <table>
@@ -1058,6 +1061,9 @@
       return;
     }
 
+    // Remove loading class
+    container.classList.remove('loading');
+
     const html = `
       <div style="overflow-x: auto; overflow-y: hidden; padding-bottom: 20px;">
         <div style="display: flex; gap: 24px; min-width: max-content; padding: 20px 0;">
@@ -1085,6 +1091,9 @@
       renderEmptyState('awardsTable', '🏆', 'No awards or recognition recorded');
       return;
     }
+
+    // Remove loading class
+    container.classList.remove('loading');
 
     const html = `
       <table>
@@ -1115,6 +1124,9 @@
   function renderEmptyState(containerId, icon, message) {
     const container = document.getElementById(containerId);
     if (!container) return;
+    
+    // Remove loading class
+    container.classList.remove('loading');
     
     container.innerHTML = `
       <div class="empty-state">

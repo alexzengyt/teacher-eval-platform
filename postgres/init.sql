@@ -193,13 +193,27 @@ BEGIN
 
   -- seed one evaluation with a couple of items
   IF NOT EXISTS (SELECT 1 FROM evaluations WHERE teacher_id = _teacher_id) THEN
-    INSERT INTO evaluations (id, teacher_id, period, type, overall_score)
+    INSERT INTO evaluations (id, teacher_id, period, type, overall_score, metadata)
     VALUES (
       gen_random_uuid(),
       _teacher_id,
       daterange(date(date_trunc('year', now())), date(date_trunc('year', now()) + INTERVAL '1 year'), '[]'),
       'annual',
-      4.3
+      4.03,
+      jsonb_build_object(
+        'cards', jsonb_build_object(
+          'teaching_effectiveness', 4.1,
+          'research_output', 4.0,
+          'service_contribution', 4.2,
+          'grant_funding', 3.8
+        ),
+        'radar', jsonb_build_object(
+          'teaching', 4.1,
+          'research', 4.0,
+          'service', 4.2,
+          'professional_development', 4.1
+        )
+      )
     )
     RETURNING id INTO _eval_id;
 

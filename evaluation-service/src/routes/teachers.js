@@ -483,9 +483,19 @@ router.get("/teachers/:id/courses", async (req, res) => {
       JOIN sections s ON s.id = ta.section_id
       JOIN courses c ON c.id = s.course_id
       LEFT JOIN (
-        -- Mock student evaluations (would come from a real evaluations table)
-        SELECT id AS section_id, 4.5 as score, gen_random_uuid() as eval_id
-        FROM sections LIMIT 100
+        -- Mock student evaluations: generate varying students (20-50) per section with ratings (3.8-5.0)
+        -- Use section ID hash as seed for variation
+        SELECT 
+          s2.id AS section_id,
+          -- Generate rating between 3.8 and 5.0 based on section ID
+          3.8 + (abs(hashtext(s2.id::text)) % 120) / 100.0 as score,
+          gen_random_uuid() as eval_id
+        FROM sections s2
+        -- Generate student count between 20 and 50 based on section ID
+        CROSS JOIN generate_series(
+          1, 
+          20 + (abs(hashtext(s2.id::text)) % 31)
+        ) student_num
       ) e ON e.section_id = s.id
       WHERE t.id = $1
       GROUP BY c.id, c.code, c.title, s.term
