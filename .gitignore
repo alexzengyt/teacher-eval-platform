@@ -19,6 +19,9 @@ postgres-data/
 .idea/
 .vscode/
 
+# audit and planning files (local only)
+REQUIREMENTS_AUDIT.md
+
 # ── env files: never commit secrets ──────────────────────────────
 .env
 .env.*

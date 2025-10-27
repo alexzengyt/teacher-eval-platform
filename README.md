@@ -546,38 +546,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 **Yutong (Alex) Zeng**
 
 - GitHub: [@alexzengyt](https://github.com/alexzengyt)
-
----
-
-## 📚 Additional Documentation
-
-- [Schoolday Integration Details](./docs/SCHOOLDAY_INTEGRATION.md)
-- [API Reference](./docs/API.md)
-- [Development Guide](./docs/DEVELOPMENT.md)
-- [Database Schema](./docs/SCHEMA.md)
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-- [Security Best Practices](./docs/SECURITY.md)
-
----
-
-## 📈 Project Statistics
-
-- **Total Lines of Code**: ~6,250 lines
-- **Microservices**: 7 services
-- **API Endpoints**: 30+ RESTful endpoints
-- **Database Tables**: 15+ tables
-- **React Components**: 6 reusable components
-- **Development Time**: 1 week
-- **Docker Images**: 7 optimized containers
-
----
-
-<div align="center">
-
-### ⭐ If you find this project useful, please consider giving it a star!
-
-**Built with ❤️ by [Yutong (Alex) Zeng](https://github.com/alexzengyt)**
-
-*Last Updated: January 2025*
-
-</div>
+- *Last Updated: October 2025*
