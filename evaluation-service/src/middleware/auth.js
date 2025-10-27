@@ -11,6 +11,8 @@ const JWT_SECRET = process.env.AUTH_JWT_SECRET || "dev_secret_please_change";
  * On failure, responds 401 with a minimal error payload.
  */
 export function requireAuth(req, res, next) {
+  console.log(`🔐 Auth check for: ${req.method} ${req.path}`);
+  
   // quick bypass switch for emergency rollback (optional)
   if (process.env.AUTH_DISABLED === "1") {
     return next();

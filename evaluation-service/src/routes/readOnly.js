@@ -64,10 +64,10 @@ router.get("/teachers/:id/overview", async (req, res) => {
     }
 
     const ev = await pool.query(
-      `SELECT id, overall_score, period, metadata, published_at, created_at, updated_at
+      `SELECT id, overall_score, period, metadata, created_at, updated_at
          FROM evaluations
-        WHERE teacher_id = $1 AND status = 'published'
-     ORDER BY published_at DESC NULLS LAST, updated_at DESC
+        WHERE teacher_id = $1
+     ORDER BY updated_at DESC
         LIMIT 1`,
       [id]
     );
@@ -86,7 +86,7 @@ router.get("/teachers/:id/overview", async (req, res) => {
         cards: (e.metadata && e.metadata.cards) || null,
         radar: (e.metadata && e.metadata.radar) || null,
         notes: (e.metadata && e.metadata.notes) || null,
-        published_at: e.published_at,
+        updated_at: e.updated_at,
       },
     });
   } catch (err) {

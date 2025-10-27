@@ -11,6 +11,10 @@ import submitRoutes from "./routes/submit.js";
 import publishRoutes from "./routes/publish.js";
 import reportsRouter from "./routes/reports.js";
 import analyticsRouter from "./routes/analytics.js";
+import serviceRouter from "./routes/service.js";
+import educationRouter from "./routes/education.js";
+import careerRouter from "./routes/career.js";
+import grantsRouter from "./routes/grants.js";
 
 // Load .env variables
 dotenv.config();
@@ -46,6 +50,15 @@ app.use("/api/eval/secure", requireAuth, submitRoutes);
 app.use("/api/eval/secure", requireAuth, publishRoutes);
 app.use("/api/eval/secure", requireAuth, reportsRouter);
 app.use("/api/eval/analytics", requireAuth, analyticsRouter);
+// New routes for Multi-Tab Evaluation Interface
+console.log("📝 Registering service routes...");
+app.use("/api/eval", requireAuth, serviceRouter);
+console.log("📝 Registering education routes...");
+app.use("/api/eval", requireAuth, educationRouter);
+console.log("📝 Registering career routes...");
+app.use("/api/eval", requireAuth, careerRouter);
+console.log("📝 Registering grants routes...");
+app.use("/api/eval", requireAuth, grantsRouter);
 
 
 
@@ -58,6 +71,12 @@ app.get("/health/db", async (req, res) => {
     console.error("❌ DB connection failed:", err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`🔍 Unmatched request: ${req.method} ${req.path}`);
+  next();
 });
 
 // Start Express server

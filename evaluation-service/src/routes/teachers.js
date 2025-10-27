@@ -476,7 +476,7 @@ router.get("/teachers/:id/courses", async (req, res) => {
         c.code,
         c.title,
         s.term as period,
-        COUNT(DISTINCT e.id) as student_count,
+        COUNT(DISTINCT e.eval_id) as student_count,
         AVG(e.score) as avg_rating
       FROM teachers t
       JOIN teaching_assignments ta ON ta.teacher_id = t.id
@@ -484,7 +484,7 @@ router.get("/teachers/:id/courses", async (req, res) => {
       JOIN courses c ON c.id = s.course_id
       LEFT JOIN (
         -- Mock student evaluations (would come from a real evaluations table)
-        SELECT section_id, 4.5 as score, gen_random_uuid() as id
+        SELECT id AS section_id, 4.5 as score, gen_random_uuid() as eval_id
         FROM sections LIMIT 100
       ) e ON e.section_id = s.id
       WHERE t.id = $1
@@ -564,62 +564,11 @@ router.get("/teachers/:id/pd-courses", async (req, res) => {
   }
 });
 
-/**
- * GET /api/eval/teachers/:id/service
- * Returns service contributions (committee work, community service)
- * Note: This would require additional tables in production
- */
-router.get("/teachers/:id/service", async (req, res) => {
-  try {
-    const teacherId = req.params.id;
-    
-    // Mock data for now - in production, you'd have service_activities table
-    res.json({
-      committees: [],
-      community: []
-    });
-  } catch (err) {
-    console.error("GET /teachers/:id/service error:", err);
-    res.status(500).json({ error: "internal_error" });
-  }
-});
-
-/**
- * GET /api/eval/teachers/:id/education
- * Returns education history
- * Note: This would require additional tables in production
- */
-router.get("/teachers/:id/education", async (req, res) => {
-  try {
-    const teacherId = req.params.id;
-    
-    // Mock data for now - in production, you'd have education_history table
-    res.json([]);
-  } catch (err) {
-    console.error("GET /teachers/:id/education error:", err);
-    res.status(500).json({ error: "internal_error" });
-  }
-});
-
-/**
- * GET /api/eval/teachers/:id/career
- * Returns career timeline and awards
- * Note: This would require additional tables in production
- */
-router.get("/teachers/:id/career", async (req, res) => {
-  try {
-    const teacherId = req.params.id;
-    
-    // Mock data for now - in production, you'd have career_history and awards tables
-    res.json({
-      timeline: [],
-      awards: []
-    });
-  } catch (err) {
-    console.error("GET /teachers/:id/career error:", err);
-    res.status(500).json({ error: "internal_error" });
-  }
-});
-
+// Note: service, education, career, and awards endpoints 
+// have been moved to dedicated route files:
+// - routes/service.js
+// - routes/education.js  
+// - routes/career.js
+// - routes/grants.js
 
 export default router;

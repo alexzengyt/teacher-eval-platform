@@ -18,15 +18,16 @@ CREATE TABLE IF NOT EXISTS schools (
 );
 
 CREATE TABLE IF NOT EXISTS teachers (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  first_name    TEXT NOT NULL,
-  last_name     TEXT NOT NULL,
-  email         TEXT UNIQUE,
-  school_id     UUID REFERENCES schools(id) ON DELETE SET NULL,
-  external_id   TEXT UNIQUE,                 -- Schoolday teacher id
-  source        TEXT NOT NULL DEFAULT 'manual',
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  first_name        TEXT NOT NULL,
+  last_name         TEXT NOT NULL,
+  email             TEXT UNIQUE,
+  school_id         UUID REFERENCES schools(id) ON DELETE SET NULL,
+  external_id       TEXT UNIQUE,                 -- Schoolday teacher id
+  source            TEXT NOT NULL DEFAULT 'manual',
+  roster_source_id  TEXT,                        -- Link to roster_teachers (migration 007)
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS courses (
@@ -158,6 +159,7 @@ CREATE TABLE IF NOT EXISTS sd_import_cursor (
 
 -- ---------- Helpful indexes ----------
 CREATE INDEX IF NOT EXISTS idx_teachers_school ON teachers(school_id);
+CREATE INDEX IF NOT EXISTS idx_teachers_roster_source_id ON teachers(roster_source_id);
 CREATE INDEX IF NOT EXISTS idx_eval_teacher ON evaluations(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_eval_period  ON evaluations USING GIST (period);
 

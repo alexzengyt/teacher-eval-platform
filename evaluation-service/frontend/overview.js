@@ -678,11 +678,19 @@
         renderEmptyState('publicationsTable', '📄', 'No publications data available');
       }
 
-      // Load grants (mock for now)
-      renderGrantsTable([]);
+      // Load grants from real API
+      const grantsResponse = await fetch(`/api/eval/teachers/${teacherId}/grants`, { headers });
+      if (grantsResponse.ok) {
+        const grantsData = await grantsResponse.json();
+        const grants = grantsData.all || [];
+        renderGrantsTable(grants);
+      } else {
+        renderEmptyState('grantsTable', '💰', 'No grants data available');
+      }
     } catch (err) {
       console.error("loadResearchData error:", err);
       renderEmptyState('publicationsTable', '📄', 'Failed to load research data');
+      renderEmptyState('grantsTable', '💰', 'Failed to load grants data');
     }
   }
 
@@ -756,21 +764,62 @@
 
   // ========== Load Service Data ==========
   async function loadServiceData() {
-    // Mock data
-    const mockCommittees = [
-      { name: 'Curriculum Development Committee', role: 'Member', period: '2024-2025', hours: 20 },
-      { name: 'Faculty Senate', role: 'Representative', period: '2023-2025', hours: 35 },
-      { name: 'Student Affairs Committee', role: 'Chair', period: '2024-2025', hours: 45 },
-    ];
-    
-    const mockCommunity = [
-      { activity: 'Guest Lecture at Local High School', organization: 'Lincoln High School', date: '2024-11-15', impact: 'Reached 150 students' },
-      { activity: 'Career Fair Volunteer', organization: 'City Career Center', date: '2024-10-20', impact: 'Mentored 30+ students' },
-      { activity: 'Community Education Workshop', organization: 'Public Library', date: '2024-09-10', impact: '75 attendees' },
-    ];
-    
-    renderCommitteeTable(mockCommittees);
-    renderCommunityTable(mockCommunity);
+    try {
+      // Fetch real service activities from API
+      const response = await fetch(`/api/eval/teachers/${teacherId}/service`, { headers });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("📋 Service API response:", data);
+
+      // Separate committee and community activities
+      const committees = data.grouped?.committee || [];
+      const community = data.grouped?.community || [];
+      const professional = data.grouped?.professional_org || [];
+      console.log("📋 Committees:", committees.length, "Community:", community.length, "Professional:", professional.length);
+
+      // Render committee table (includes committee, department, and professional_org)
+      const allCommittees = [
+        ...committees.map(c => ({
+          name: c.name,
+          role: c.role || 'Member',
+          period: formatDateRange(c.start_date, c.end_date),
+          hours: c.hours || 0
+        })),
+        ...professional.map(c => ({
+          name: c.name,
+          role: c.role || 'Participant',
+          period: formatDateRange(c.start_date, c.end_date),
+          hours: c.hours || 0
+        }))
+      ];
+
+      renderCommitteeTable(allCommittees);
+
+      // Render community table
+      const communityActivities = community.map(c => ({
+        activity: c.name,
+        organization: c.organization || 'N/A',
+        date: c.start_date,
+        impact: c.impact || c.description || 'N/A'
+      }));
+
+      renderCommunityTable(communityActivities);
+
+    } catch (err) {
+      console.error("loadServiceData error:", err);
+      renderEmptyState('committeeTable', '👥', 'Failed to load committee work');
+      renderEmptyState('communityTable', '🌍', 'Failed to load community contributions');
+    }
+  }
+
+  function formatDateRange(startDate, endDate) {
+    if (!startDate) return 'N/A';
+    const start = new Date(startDate).getFullYear();
+    if (!endDate) return `${start}-Present`;
+    const end = new Date(endDate).getFullYear();
+    return `${start}-${end}`;
   }
 
   function renderCommitteeTable(committees) {
@@ -841,42 +890,38 @@
 
   // ========== Load Professional Data ==========
   async function loadProfessionalData() {
-    // Mock education data
-    const mockEducation = [
-      { degree: 'Ph.D.', field: 'Economics', institution: 'Stanford University', year: 2018 },
-      { degree: 'M.A.', field: 'Economics', institution: 'UC Berkeley', year: 2014 },
-      { degree: 'B.A.', field: 'Business Administration', institution: 'UCLA', year: 2012 },
-    ];
-    
-    renderEducationTable(mockEducation);
-    
     try {
-      // Load PD courses
-      let pdCourses = [];
+      // Load real education history from API
+      const educationResponse = await fetch(`/api/eval/teachers/${teacherId}/education`, { headers });
+      if (educationResponse.ok) {
+        const education = await educationResponse.json();
+        
+        // Map to expected format
+        const formattedEducation = education.map(e => ({
+          degree: e.degree,
+          field: e.field,
+          institution: e.institution,
+          year: e.graduation_year
+        }));
+        
+        renderEducationTable(formattedEducation);
+      } else {
+        renderEmptyState('educationTable', '🎓', 'No education history recorded');
+      }
+
+      // Load PD courses (already has real API call)
       const pdResponse = await fetch(`/api/eval/teachers/${teacherId}/pd-courses`, { headers });
       if (pdResponse.ok) {
-        pdCourses = await pdResponse.json();
+        const pdCourses = await pdResponse.json();
+        renderCertificationsTable(pdCourses);
+      } else {
+        renderEmptyState('certificationsTable', '📜', 'No certifications or PD courses recorded');
       }
-      
-      // If no PD courses, use mock data
-      if (!pdCourses || pdCourses.length === 0) {
-        pdCourses = [
-          { title: 'Advanced Teaching Strategies', provider: 'Schoolday Academy', hours: 15, completed_on: '2024-08-15' },
-          { title: 'Data-Driven Instruction', provider: 'EdTech Institute', hours: 20, completed_on: '2024-06-20' },
-          { title: 'Inclusive Classroom Practices', provider: 'Schoolday Academy', hours: 12, completed_on: '2024-03-10' },
-          { title: 'Assessment Design Workshop', provider: 'Internal', hours: 8, completed_on: '2023-11-05' },
-        ];
-      }
-      
-      renderCertificationsTable(pdCourses);
+
     } catch (err) {
       console.error("loadProfessionalData error:", err);
-      // Use mock data on error
-      const mockPD = [
-        { title: 'Advanced Teaching Strategies', provider: 'Schoolday Academy', hours: 15, completed_on: '2024-08-15' },
-        { title: 'Data-Driven Instruction', provider: 'EdTech Institute', hours: 20, completed_on: '2024-06-20' },
-      ];
-      renderCertificationsTable(mockPD);
+      renderEmptyState('educationTable', '🎓', 'Failed to load education history');
+      renderEmptyState('certificationsTable', '📜', 'Failed to load certifications');
     }
   }
 
@@ -948,23 +993,61 @@
 
   // ========== Load Career Data ==========
   async function loadCareerData() {
-    // Mock career timeline data
-    const mockTimeline = [
-      { date: 'Sep 2020 - Present', title: 'Associate Professor', description: 'Department of Economics, Current University' },
-      { date: 'Sep 2018 - Aug 2020', title: 'Assistant Professor', description: 'Department of Economics, Current University' },
-      { date: 'Sep 2016 - Aug 2018', title: 'Postdoctoral Researcher', description: 'Stanford University' },
-      { date: 'Sep 2012 - Aug 2016', title: 'Ph.D. Candidate', description: 'Stanford University' },
-    ];
+    try {
+      // Load real career history from API
+      const careerResponse = await fetch(`/api/eval/teachers/${teacherId}/career`, { headers });
+      if (careerResponse.ok) {
+        const careerData = await careerResponse.json();
+        const careerTimeline = careerData.timeline || [];
+        
+        // Map to timeline format
+        const formattedTimeline = careerTimeline.map(c => ({
+          date: formatPositionDate(c.start_date, c.end_date, c.is_current),
+          title: c.position,
+          description: [c.department, c.institution, c.location].filter(Boolean).join(', ')
+        }));
+        
+        renderCareerTimeline(formattedTimeline);
+      } else {
+        renderEmptyState('careerTimeline', '💼', 'No career timeline data available');
+      }
+
+      // Load real awards from API
+      const awardsResponse = await fetch(`/api/eval/teachers/${teacherId}/awards`, { headers });
+      if (awardsResponse.ok) {
+        const awardsData = await awardsResponse.json();
+        const awards = awardsData.all || [];
+        
+        // Map to expected format
+        const formattedAwards = awards.map(a => ({
+          title: a.title,
+          organization: a.organization,
+          date: a.awarded_date,
+          description: a.amount ? `${a.description || ''} ($${parseFloat(a.amount).toLocaleString()})` : (a.description || '')
+        }));
+        
+        renderAwardsTable(formattedAwards);
+      } else {
+        renderEmptyState('awardsTable', '🏆', 'No awards or recognition recorded');
+      }
+
+    } catch (err) {
+      console.error("loadCareerData error:", err);
+      renderEmptyState('careerTimeline', '💼', 'Failed to load career timeline');
+      renderEmptyState('awardsTable', '🏆', 'Failed to load awards');
+    }
+  }
+
+  function formatPositionDate(startDate, endDate, isCurrent) {
+    if (!startDate) return 'N/A';
+    const start = new Date(startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     
-    // Mock awards data
-    const mockAwards = [
-      { title: 'Excellence in Teaching Award', organization: 'University Faculty Association', date: '2024-05-15', description: 'Recognized for outstanding teaching performance' },
-      { title: 'Best Paper Award', organization: 'International Economics Conference', date: '2023-11-20', description: 'For research on behavioral economics' },
-      { title: 'Early Career Research Grant', organization: 'National Science Foundation', date: '2022-08-01', description: '$50,000 research funding' },
-    ];
+    if (isCurrent || !endDate) {
+      return `${start} - Present`;
+    }
     
-    renderCareerTimeline(mockTimeline);
-    renderAwardsTable(mockAwards);
+    const end = new Date(endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return `${start} - ${end}`;
   }
 
   function renderCareerTimeline(timeline) {
