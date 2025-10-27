@@ -437,12 +437,21 @@
         </div>
       </div>
 
-      <!-- Score Trend & Courses Taught Row -->
+      <!-- Courses Taught Row (Full Width) -->
+      <div class="data-table" style="margin-bottom: 24px;">
+        <h3>Courses Taught</h3>
+        <div id="coursesTable" class="loading">
+          <div class="spinner"></div>
+          Loading courses...
+        </div>
+      </div>
+
+      <!-- Score Trend & Performance Prediction Row (Side by Side) -->
       <div class="chart-row" style="gap: 24px;">
         <!-- Score Trend -->
         <div class="chart-container" style="flex: 1;">
           <h3>Score Trend</h3>
-          <div id="scoreTrend" style="min-height: 300px; display: flex; align-items: center; justify-content: center; background: #f9fafb; border-radius: 12px; padding: 40px;">
+          <div id="scoreTrend" style="min-height: 450px; display: flex; align-items: center; justify-content: center; background: #f9fafb; border-radius: 12px; padding: 40px;">
             <div style="text-align: center; color: #6b7280;">
               <div style="font-size: 48px; margin-bottom: 16px;">📈</div>
               <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Historical Trend Data</div>
@@ -451,21 +460,10 @@
           </div>
         </div>
 
-        <!-- Courses Taught -->
-        <div class="data-table" style="margin-bottom: 0; flex: 1;">
-          <h3>Courses Taught</h3>
-          <div id="coursesTable" class="loading">
-            <div class="spinner"></div>
-            Loading courses...
-          </div>
-        </div>
-      </div>
-
-      <!-- Performance Prediction Row -->
-      <div class="chart-row" style="gap: 24px; margin-top: 24px;">
+        <!-- Performance Prediction -->
         <div class="chart-container" style="flex: 1;">
           <h3>Performance Prediction</h3>
-          <div id="predictionChart" class="loading">
+          <div id="predictionChart" class="loading" style="min-height: 450px;">
             <div class="spinner"></div>
             Loading predictions...
           </div>
