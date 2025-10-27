@@ -1162,6 +1162,9 @@
   // ========== Load Professional Data ==========
   async function loadProfessionalData() {
     try {
+      // Load recommendations first
+      await loadRecommendations();
+
       // Load real education history from API
       const educationResponse = await fetch(`/api/eval/teachers/${teacherId}/education`, { headers });
       if (educationResponse.ok) {
@@ -1614,6 +1617,114 @@
       <div class="empty-state">
         <div class="empty-state-icon">${icon}</div>
         <div class="empty-state-text">${message}</div>
+      </div>
+    `;
+  }
+
+  // ========== Professional Development Recommendations ==========
+  async function loadRecommendations() {
+    try {
+      const response = await fetch(`/api/eval/teachers/${teacherId}/recommendations`, { headers });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      renderRecommendations(data);
+    } catch (err) {
+      console.error("loadRecommendations error:", err);
+      const container = document.getElementById('recommendationsArea');
+      if (container) {
+        container.classList.remove('loading');
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #6b7280;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🎯</div>
+            <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Recommendations Coming Soon</div>
+            <div style="font-size: 14px;">Personalized course recommendations will be available after your first evaluation</div>
+          </div>
+        `;
+      }
+    }
+  }
+
+  function renderRecommendations(data) {
+    const container = document.getElementById('recommendationsArea');
+    if (!container) return;
+
+    container.classList.remove('loading');
+
+    const { weaknesses, recommendations, currentScores } = data;
+
+    if (!weaknesses || weaknesses.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+          <div style="font-size: 18px; font-weight: 600; color: #059669; margin-bottom: 8px;">Excellent Performance!</div>
+          <div style="font-size: 14px; color: #6b7280;">You're performing well across all dimensions. Keep up the great work!</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (!recommendations || recommendations.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">💡</div>
+          <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">No Courses Available</div>
+          <div style="font-size: 14px; color: #6b7280;">No relevant courses found for your improvement areas</div>
+        </div>
+      `;
+      return;
+    }
+
+    const categoryNames = {
+      teaching: 'Teaching Excellence',
+      research: 'Research Skills',
+      service: 'Service Contribution',
+      professional_development: 'Professional Growth'
+    };
+
+    container.innerHTML = `
+      <div style="margin-bottom: 20px; padding: 16px; background: rgba(255, 255, 255, 0.6); border-radius: 8px;">
+        <div style="font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 8px;">📊 Your Current Scores</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; font-size: 13px;">
+          ${Object.entries(currentScores).map(([key, value]) => {
+            const displayName = categoryNames[key] || key;
+            const isWeak = weaknesses.includes(key);
+            return `
+              <div style="padding: 8px; background: ${isWeak ? '#fee2e2' : '#e0f2fe'}; border-radius: 6px; text-align: center;">
+                <div style="font-weight: 600; color: ${isWeak ? '#dc2626' : '#0369a1'};">${displayName}</div>
+                <div style="font-size: 16px; font-weight: 700; color: ${isWeak ? '#dc2626' : '#0369a1'};">${value.toFixed(1)}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 6px;">
+        <div style="font-size: 14px; font-weight: 600; color: #dc2626; margin-bottom: 4px;">⚠️ Areas for Improvement</div>
+        <div style="font-size: 13px; color: #991b1b;">${weaknesses.map(w => categoryNames[w] || w).join(', ')}</div>
+      </div>
+
+      <div style="margin-bottom: 12px; font-size: 14px; font-weight: 600; color: #92400e;">🎯 Recommended Courses</div>
+      <div style="display: grid; gap: 16px;">
+        ${recommendations.map(rec => `
+          <div style="padding: 20px; background: white; border-radius: 12px; border: 2px solid #f59e0b; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+              <div style="flex: 1;">
+                <div style="font-size: 16px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">📚 ${rec.title}</div>
+                <div style="font-size: 13px; color: #6b7280;">by ${rec.provider}</div>
+              </div>
+              <div style="background: #fbbf24; color: #78350f; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                ${rec.hours} hrs
+              </div>
+            </div>
+            <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px; line-height: 1.5;">${rec.description || 'No description available'}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 12px; color: #dc2626; font-weight: 600;">💡 ${rec.reason}</div>
+              <div style="font-size: 12px; color: #059669; font-weight: 600;">Target: ${rec.targetScore.toFixed(1)}/5.0</div>
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
   }
