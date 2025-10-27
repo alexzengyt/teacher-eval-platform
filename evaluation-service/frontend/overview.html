@@ -199,6 +199,9 @@
     canvas {
       max-height: 350px;
     }
+    .chart-container canvas {
+      max-height: 380px !important;
+    }
 
     /* Table Styles */
     .data-table {
@@ -209,8 +212,8 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       padding: 24px;
       margin-bottom: 24px;
-      min-height: 280px;
-      max-height: 800px;
+      min-height: 200px;
+      max-height: 500px;
       overflow-y: auto;
       overflow-x: auto;
     }
@@ -416,12 +419,39 @@
         </div>
       </div>
 
-      <!-- Main Content Row -->
-      <div class="chart-row" style="gap: 16px;">
+      <!-- Performance Radar & Peer Comparison Row -->
+      <div class="chart-row" style="gap: 24px;">
+        <!-- Performance Radar -->
         <div class="chart-container" style="flex: 1;">
           <h3>Performance Radar</h3>
           <canvas id="radar"></canvas>
         </div>
+        
+        <!-- Peer Comparison -->
+        <div class="chart-container" style="flex: 1;">
+          <h3>Peer Comparison</h3>
+          <div id="peerComparison" class="loading">
+            <div class="spinner"></div>
+            Loading peer comparison...
+          </div>
+        </div>
+      </div>
+
+      <!-- Score Trend & Courses Taught Row -->
+      <div class="chart-row" style="gap: 24px;">
+        <!-- Score Trend -->
+        <div class="chart-container" style="flex: 1;">
+          <h3>Score Trend</h3>
+          <div id="scoreTrend" style="min-height: 300px; display: flex; align-items: center; justify-content: center; background: #f9fafb; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; color: #6b7280;">
+              <div style="font-size: 48px; margin-bottom: 16px;">📈</div>
+              <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Historical Trend Data</div>
+              <div style="font-size: 14px;">Multi-semester evaluation trends will be available with more historical data</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Courses Taught -->
         <div class="data-table" style="margin-bottom: 0; flex: 1;">
           <h3>Courses Taught</h3>
           <div id="coursesTable" class="loading">

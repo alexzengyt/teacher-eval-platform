@@ -95,4 +95,84 @@ router.get("/teachers/:id/overview", async (req, res) => {
   }
 });
 
+// GET /api/eval/teachers/:id/trend
+// Returns historical evaluation trends for a teacher
+router.get("/teachers/:id/trend", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verify teacher exists
+    const t = await pool.query(
+      "SELECT id, first_name, last_name FROM teachers WHERE id = $1",
+      [id]
+    );
+    if (t.rowCount === 0) {
+      return res.status(404).json({ error: "not_found" });
+    }
+
+    // Get all evaluations ordered by period
+    const ev = await pool.query(
+      `SELECT 
+        id, 
+        overall_score, 
+        period, 
+        metadata,
+        lower(period) as start_date,
+        created_at, 
+        updated_at
+       FROM evaluations
+       WHERE teacher_id = $1
+       ORDER BY lower(period) ASC`,
+      [id]
+    );
+
+    if (ev.rowCount === 0) {
+      return res.json({ teacher: t.rows[0], trend: [] });
+    }
+
+    // Format trend data
+    const trend = ev.rows.map(e => ({
+      period: formatPeriod(e.period),
+      start_date: e.start_date,
+      overall_score: e.overall_score,
+      teaching: e.metadata?.radar?.teaching || 0,
+      research: e.metadata?.radar?.research || 0,
+      service: e.metadata?.radar?.service || 0,
+      professional_development: e.metadata?.radar?.professional_development || 0,
+    }));
+
+    res.json({
+      teacher: t.rows[0],
+      trend: trend
+    });
+  } catch (err) {
+    console.error("trend error", err);
+    res.status(500).json({ ok: false, error: "internal_error" });
+  }
+});
+
+// Helper function to format period range to readable string
+function formatPeriod(periodRange) {
+  if (!periodRange) return 'Unknown';
+  
+  // Parse daterange format: [2023-01-01,2023-06-02)
+  const match = periodRange.match(/\[(\d{4})-(\d{2})-\d{2},(\d{4})-(\d{2})-\d{2}\)/);
+  if (!match) return periodRange;
+  
+  const [_, startYear, startMonth, endYear, endMonth] = match;
+  
+  // Determine semester based on start month
+  let semester = '';
+  const month = parseInt(startMonth);
+  if (month >= 1 && month <= 5) {
+    semester = 'Spring';
+  } else if (month >= 8 && month <= 12) {
+    semester = 'Fall';
+  } else {
+    semester = 'Summer';
+  }
+  
+  return `${semester} ${startYear}`;
+}
+
 export default router;

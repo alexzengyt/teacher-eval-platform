@@ -137,6 +137,12 @@
       // Load teaching data (courses)
       await loadTeachingData();
 
+      // Load score trend
+      await loadScoreTrend();
+
+      // Load peer comparison
+      await loadPeerComparison();
+
     } catch (err) {
       console.error("loadOverview error:", err);
       document.getElementById("name").textContent = "Error loading data";
@@ -190,7 +196,13 @@
           r: { 
             suggestedMin: 0, 
             suggestedMax: 5,
-            ticks: { stepSize: 1 }
+            ticks: { 
+              stepSize: 1,
+              font: { size: 14 }
+            },
+            pointLabels: {
+              font: { size: 16, weight: '600' }
+            }
           }
         }
       }
@@ -246,134 +258,396 @@
     }
   }
 
+  async function loadScoreTrend() {
+    try {
+      const container = document.getElementById("scoreTrend");
+      if (!container) return;
+
+      // Fetch historical trend data
+      const response = await fetch(`/api/eval/teachers/${teacherId}/trend`, { headers });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      const trend = data.trend || [];
+
+      // Check if we have enough data
+      if (trend.length < 2) {
+        container.innerHTML = `
+          <div style="min-height: 300px; display: flex; align-items: center; justify-content: center; background: #f9fafb; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; color: #6b7280;">
+              <div style="font-size: 48px; margin-bottom: 16px;">📈</div>
+              <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Historical Trend Data</div>
+              <div style="font-size: 14px;">Multi-semester evaluation trends will be available with more historical data</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Prepare data for chart
+      const labels = trend.map(t => t.period);
+      const datasets = [
+        {
+          label: 'Teaching',
+          data: trend.map(t => t.teaching),
+          borderColor: 'rgba(99, 102, 241, 1)',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          fill: false
+        },
+        {
+          label: 'Research',
+          data: trend.map(t => t.research),
+          borderColor: 'rgba(34, 197, 94, 1)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          fill: false
+        },
+        {
+          label: 'Service',
+          data: trend.map(t => t.service),
+          borderColor: 'rgba(251, 191, 36, 1)',
+          backgroundColor: 'rgba(251, 191, 36, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: 'rgba(251, 191, 36, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          fill: false
+        },
+        {
+          label: 'Professional Dev.',
+          data: trend.map(t => t.professional_development),
+          borderColor: 'rgba(239, 68, 68, 1)',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          fill: false
+        }
+      ];
+
+      // Render chart container
+      container.innerHTML = '<canvas id="scoreTrendChart"></canvas>';
+
+      // Render line chart
+      const ctx = document.getElementById('scoreTrendChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                padding: 15,
+                font: { size: 13, weight: '600' },
+                usePointStyle: true,
+                pointStyle: 'circle',
+                boxWidth: 10,
+                boxHeight: 10
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 },
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              min: 2.0,
+              max: 5,
+              ticks: { 
+                stepSize: 0.5,
+                font: { size: 12 }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 12, weight: '600' }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+
+    } catch (err) {
+      console.error("loadScoreTrend error:", err);
+      const container = document.getElementById("scoreTrend");
+      if (container) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📈</div><div class="empty-state-text">Unable to load score trend</div></div>';
+      }
+    }
+  }
+
   async function loadPeerComparison() {
     try {
-      const container = document.getElementById("comparisonData");
+      const container = document.getElementById("peerComparison");
+      if (!container) return;
+
+      // Remove loading class
+      container.classList.remove('loading');
       
-      // Create comparison mode selector and content area (vertical layout: buttons on top, table below)
+      // Fetch all teachers' data
+      const response = await fetch('/api/eval/teachers?pageSize=100', { headers });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const allTeachers = data.items || [];
+
+      // Get current teacher's evaluation
+      const currentResponse = await fetch(`/api/eval/teachers/${teacherId}/overview`, { headers });
+      if (!currentResponse.ok) throw new Error(`HTTP ${currentResponse.status}`);
+      const currentData = await currentResponse.json();
+      const currentScore = currentData.evaluation?.overall_score || 0;
+      const currentRadar = currentData.evaluation?.radar || {};
+
+      // Fetch evaluation data for all teachers
+      const teachersWithScores = await Promise.all(
+        allTeachers.map(async (teacher) => {
+          try {
+            const res = await fetch(`/api/eval/teachers/${teacher.id}/overview`, { headers });
+            if (!res.ok) {
+              console.log(`No overview data for ${teacher.firstName} ${teacher.lastName}`);
+              return null;
+            }
+            const data = await res.json();
+            if (!data.evaluation || !data.evaluation.overall_score) {
+              console.log(`No evaluation data for ${teacher.firstName} ${teacher.lastName}`);
+              return null;
+            }
+            return {
+              id: teacher.id,
+              name: `${teacher.firstName} ${teacher.lastName}`,
+              overall_score: data.evaluation.overall_score,
+              radar: data.evaluation.radar || {
+                teaching: 0,
+                research: 0,
+                service: 0,
+                professional_development: 0
+              }
+            };
+          } catch (err) {
+            console.error(`Error fetching data for ${teacher.firstName} ${teacher.lastName}:`, err);
+            return null;
+          }
+        })
+      );
+
+      // Filter out null values and sort by overall score
+      const validTeachers = teachersWithScores
+        .filter(t => t !== null && t.overall_score > 0)
+        .sort((a, b) => b.overall_score - a.overall_score);
+
+      console.log(`Found ${validTeachers.length} teachers with evaluation data`);
+
+      // Check if we have enough data
+      if (validTeachers.length < 2) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Need at least 2 teachers with evaluation data for comparison</div></div>';
+        return;
+      }
+
+      // Calculate percentile rank
+      const currentRank = validTeachers.findIndex(t => t.id === teacherId) + 1;
+      if (currentRank === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Current teacher not found in comparison data</div></div>';
+        return;
+      }
+      const totalTeachers = validTeachers.length;
+      const percentile = Math.round((1 - (currentRank - 1) / totalTeachers) * 100);
+      
+      // Determine tier based on percentile (quartiles)
+      let tierText = '';
+      let tierLabel = '';
+      if (percentile > 75) {
+        tierText = 'Tier 1';
+        tierLabel = 'TOP 25% PERFORMER';
+      } else if (percentile > 50) {
+        tierText = 'Tier 2';
+        tierLabel = 'TOP 50% PERFORMER';
+      } else if (percentile > 25) {
+        tierText = 'Tier 3';
+        tierLabel = 'NEED IMPROVEMENT';
+      } else {
+        tierText = 'Tier 4';
+        tierLabel = 'NEED IMPROVEMENT';
+      }
+
+      // Prepare chart data - compare current teacher with others
+      const labels = ['Teaching', 'Research', 'Service', 'Professional Dev.'];
+      const datasets = [];
+
+      // Current teacher (highlighted)
+      datasets.push({
+        label: 'You',
+        data: [
+          num(currentRadar.teaching),
+          num(currentRadar.research),
+          num(currentRadar.service),
+          num(currentRadar.professional_development)
+        ],
+        backgroundColor: 'rgba(99, 102, 241, 0.8)',
+        borderColor: 'rgba(99, 102, 241, 1)',
+        borderWidth: 2
+      });
+
+      // Top 3 other teachers
+      const othersToShow = validTeachers.filter(t => t.id !== teacherId).slice(0, 3);
+      const colors = [
+        { bg: 'rgba(34, 197, 94, 0.6)', border: 'rgba(34, 197, 94, 1)' },
+        { bg: 'rgba(251, 191, 36, 0.6)', border: 'rgba(251, 191, 36, 1)' },
+        { bg: 'rgba(239, 68, 68, 0.6)', border: 'rgba(239, 68, 68, 1)' }
+      ];
+
+      othersToShow.forEach((teacher, index) => {
+        datasets.push({
+          label: teacher.name,
+          data: [
+            num(teacher.radar.teaching),
+            num(teacher.radar.research),
+            num(teacher.radar.service),
+            num(teacher.radar.professional_development)
+          ],
+          backgroundColor: colors[index].bg,
+          borderColor: colors[index].border,
+          borderWidth: 1
+        });
+      });
+
+      // Render chart and info
       container.innerHTML = `
-        <!-- Mode selector at top -->
-        <div style="display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
-          <span style="font-weight: 600; color: #4b5563; margin-right: 8px;">Compare with:</span>
-          <button class="compare-mode-btn active" data-mode="top3" style="padding: 8px 16px; border: 2px solid #6366f1; background: #6366f1; color: white; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-            Top 3 Performers
-          </button>
-          <button class="compare-mode-btn" data-mode="top5" style="padding: 8px 16px; border: 2px solid #d1d5db; background: white; color: #6b7280; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-            Top 5 Performers
-          </button>
-        </div>
-        
-        <!-- Comparison table below -->
-        <div id="comparisonContent">
-          <div class="loading">
-            <div class="spinner"></div>
-            Loading comparison...
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Stats Row -->
+          <div style="display: flex; gap: 16px; justify-content: center;">
+            <div style="flex: 1; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-size: 42px; font-weight: 700; color: white; margin-bottom: 8px;">${tierText}</div>
+              <div style="font-size: 11px; color: rgba(255,255,255,0.9); font-weight: 600; letter-spacing: 0.3px; margin-top: 4px;">${tierLabel}</div>
+            </div>
+            <div style="flex: 1; padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-size: 42px; font-weight: 700; color: white; margin-bottom: 8px;">#${currentRank}</div>
+              <div style="font-size: 13px; color: rgba(255,255,255,0.9); font-weight: 600; letter-spacing: 0.5px;">OF ${totalTeachers} TEACHERS</div>
+            </div>
+          </div>
+          <!-- Chart -->
+          <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: 350px;">
+            <canvas id="peerComparisonChart"></canvas>
           </div>
         </div>
       `;
 
-      // Add event listeners for mode buttons
-      const modeButtons = container.querySelectorAll('.compare-mode-btn');
-      modeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          modeButtons.forEach(b => {
-            b.style.background = 'white';
-            b.style.color = '#6b7280';
-            b.style.borderColor = '#d1d5db';
-            b.classList.remove('active');
-          });
-          btn.style.background = '#6366f1';
-          btn.style.color = 'white';
-          btn.style.borderColor = '#6366f1';
-          btn.classList.add('active');
-
-          const mode = btn.getAttribute('data-mode');
-          loadComparisonData(mode);
-        });
-        
-        // Add hover effect
-        btn.addEventListener('mouseenter', () => {
-          if (!btn.classList.contains('active')) {
-            btn.style.borderColor = '#6366f1';
-            btn.style.color = '#6366f1';
+      // Render comparison chart
+      const ctx = document.getElementById('peerComparisonChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                padding: 20,
+                font: { size: 13, weight: '600' },
+                usePointStyle: true,
+                pointStyle: 'circle',
+                boxWidth: 10,
+                boxHeight: 10
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 },
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 5,
+              ticks: { 
+                stepSize: 1,
+                font: { size: 12 }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 12, weight: '600' }
+              },
+              grid: {
+                display: false
+              }
+            }
           }
-        });
-        btn.addEventListener('mouseleave', () => {
-          if (!btn.classList.contains('active')) {
-            btn.style.borderColor = '#d1d5db';
-            btn.style.color = '#6b7280';
-          }
-        });
+        }
       });
-
-      // Load default comparison (top3)
-      await loadComparisonData('top3');
 
     } catch (err) {
       console.error("loadPeerComparison error:", err);
-      document.getElementById("comparisonData").innerHTML = '<div class="empty-state"><div class="empty-state-text">Failed to load comparison interface</div></div>';
+      const container = document.getElementById("peerComparison");
+      if (container) {
+        container.classList.remove('loading');
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Unable to load peer comparison</div></div>';
+      }
     }
   }
 
-  async function loadComparisonData(mode) {
-    try {
-      const contentDiv = document.getElementById('comparisonContent');
-      contentDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Loading comparison...</div>';
-
-      const url = `/api/eval/analytics/comparison?currentTeacherId=${teacherId}&compareWith=${mode}`;
-      const response = await fetch(url, { headers });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      const teachers = data.teachers || [];
-
-      if (teachers.length === 0) {
-        contentDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">No comparison data available</div></div>';
-        return;
-      }
-
-      // Render comparison table (simple and clean style)
-      const html = `
-        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
-          <thead>
-            <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
-              <th style="padding: 12px 16px; text-align: left; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rank</th>
-              <th style="padding: 12px 16px; text-align: left; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Teacher</th>
-              <th style="padding: 12px 16px; text-align: center; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Overall</th>
-              <th style="padding: 12px 16px; text-align: center; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Teaching</th>
-              <th style="padding: 12px 16px; text-align: center; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Research</th>
-              <th style="padding: 12px 16px; text-align: center; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Service</th>
-              <th style="padding: 12px 16px; text-align: center; font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Evals</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${teachers.map((t, idx) => `
-              <tr style="border-bottom: 1px solid #e5e7eb; ${t.isCurrent ? 'background: #eef2ff;' : ''}">
-                <td style="padding: 14px 16px;">
-                  <span style="display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; background: ${idx < 3 ? '#6366f1' : '#e5e7eb'}; color: ${idx < 3 ? 'white' : '#6b7280'}; border-radius: 50%; font-weight: 600; font-size: 13px;">${idx + 1}</span>
-                </td>
-                <td style="padding: 14px 16px;">
-                  <div style="font-weight: 600; color: #1f2937; font-size: 14px;">
-                    ${t.teacherName}
-                    ${t.isCurrent ? '<span style="display: inline-block; margin-left: 8px; background: #6366f1; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;">YOU</span>' : ''}
-                  </div>
-                </td>
-                <td style="padding: 14px 16px; text-align: center;">
-                  <span style="font-weight: 700; font-size: 16px; color: ${t.isCurrent ? '#6366f1' : '#1f2937'};">${t.averageScore.toFixed(2)}</span>
-                </td>
-                <td style="padding: 14px 16px; text-align: center; color: #6b7280; font-size: 14px;">${t.avgTeaching ? t.avgTeaching.toFixed(1) : 'N/A'}</td>
-                <td style="padding: 14px 16px; text-align: center; color: #6b7280; font-size: 14px;">${t.avgResearch ? t.avgResearch.toFixed(1) : 'N/A'}</td>
-                <td style="padding: 14px 16px; text-align: center; color: #6b7280; font-size: 14px;">${t.avgService ? t.avgService.toFixed(1) : 'N/A'}</td>
-                <td style="padding: 14px 16px; text-align: center; color: #6b7280; font-size: 14px;">${t.totalEvaluations}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-      contentDiv.innerHTML = html;
-    } catch (err) {
-      console.error("loadComparisonData error:", err);
-      document.getElementById('comparisonContent').innerHTML = '<div class="empty-state"><div class="empty-state-text">Failed to load comparison data</div></div>';
+  function updatePercentileDisplay(percentile) {
+    // Add percentile info to the teaching effectiveness card
+    const teachingCard = document.getElementById('teaching')?.parentElement;
+    if (teachingCard) {
+      const existing = teachingCard.querySelector('.percentile-badge');
+      if (existing) existing.remove();
+      
+      const badge = document.createElement('div');
+      badge.className = 'percentile-badge';
+      badge.style.cssText = 'margin-top: 8px; padding: 4px 12px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; display: inline-block;';
+      badge.innerHTML = `<span style="font-size: 12px; color: #6366f1; font-weight: 600;">Top ${100 - percentile}% performer</span>`;
+      teachingCard.appendChild(badge);
     }
   }
 
