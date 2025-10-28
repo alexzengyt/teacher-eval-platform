@@ -2,6 +2,16 @@
 
 A microservices-based faculty evaluation system with OAuth 2.0 SSO, OneRoster 1.1 integration, and advanced analytics.
 
+## 🎥 Video Demonstrations
+
+**📹 Full Feature Demo (Previous Version)**  
+[▶️ Watch on Google Drive](https://drive.google.com/file/d/14nIPBSlQPWcUQJYWj5_UOjiC4A2r1xZ-/view?usp=sharing) - Complete walkthrough of core features
+
+**📹 Latest Feature Demo (Updated)**  
+[▶️ Watch on Google Drive](https://drive.google.com/file/d/15JrecTNKFWR0zrZXwngKouGITiyFf9NU/view?usp=sharing) - Demonstration of newest features and improvements
+
+---
+
 **🚀 Live Demo**: [teacher-eval-platform.vercel.app](https://teacher-eval-platform.vercel.app)
 
 **Test Credentials:**
